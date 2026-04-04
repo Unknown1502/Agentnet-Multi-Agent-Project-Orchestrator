@@ -7,9 +7,10 @@ export const dynamic = "force-dynamic";
 // Probe Token Vault using the MAIN app client (same client that issued the refresh token).
 // Auth0 requires subject_token's issuer client == the client_id in the request.
 async function probeTokenVault(connection: string, refreshToken: string): Promise<boolean> {
-  const domain = process.env.AUTH0_DOMAIN;
-  const clientId = process.env.AUTH0_CLIENT_ID;
-  const clientSecret = process.env.AUTH0_CLIENT_SECRET;
+  const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
+  const domain = c(process.env.AUTH0_DOMAIN);
+  const clientId = c(process.env.AUTH0_CLIENT_ID);
+  const clientSecret = c(process.env.AUTH0_CLIENT_SECRET);
   if (!domain || !clientId || !clientSecret) return false;
   try {
     const res = await fetch(`https://${domain}/oauth/token`, {

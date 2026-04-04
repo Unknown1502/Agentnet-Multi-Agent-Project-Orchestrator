@@ -8,11 +8,13 @@ const store = new MemoryStore();
 // we use AUTH0_CLIENT_ID / AUTH0_CLIENT_SECRET here — NOT the separate M2M app.
 // The Token Vault grant type must be enabled on this application in Auth0 Dashboard:
 // Applications → AgentNet → Advanced Settings → Grant Types → Token Exchange.
+const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
+
 const auth0AI = new Auth0AI({
   auth0: {
-    domain: process.env.AUTH0_ISSUER_BASE_URL?.replace("https://", "") || "",
-    clientId: process.env.AUTH0_CLIENT_ID || "",
-    clientSecret: process.env.AUTH0_CLIENT_SECRET || "",
+    domain: c(process.env.AUTH0_ISSUER_BASE_URL).replace("https://", ""),
+    clientId: c(process.env.AUTH0_CLIENT_ID),
+    clientSecret: c(process.env.AUTH0_CLIENT_SECRET),
   },
   store,
 });
