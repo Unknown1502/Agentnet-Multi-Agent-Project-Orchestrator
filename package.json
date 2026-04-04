@@ -9,9 +9,26 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@auth0/ai": "^6.0.0",
+    "@auth0/ai-langchain": "^5.0.0",
+    "@auth0/nextjs-auth0": "^4.16.1",
+    "@langchain/core": "^0.3.77",
+    "@langchain/google-genai": "^0.2.12",
+    "@langchain/groq": "^0.2.4",
+    "@langchain/langgraph": "^0.4.9",
+    "@octokit/rest": "^22.0.1",
+    "@slack/web-api": "^7.15.0",
+    "@upstash/redis": "^1.37.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "googleapis": "^171.4.0",
+    "langchain": "^0.3.33",
+    "lucide-react": "^1.7.0",
     "next": "16.2.1",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "tailwind-merge": "^3.5.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
