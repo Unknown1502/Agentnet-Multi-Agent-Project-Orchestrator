@@ -281,7 +281,62 @@ export const getIssueDetails = withGitHubAccess(
   )
 );
 
+export const listUserRepos = withGitHubAccess(
+  tool(
+    async ({ sort, limit }: { sort?: string; limit?: number }) => {
+      const accessToken = getAccessTokenFromTokenVault();
+      const params = new URLSearchParams({
+        sort: sort || "pushed",
+        per_page: String(limit || 10),
+        affiliation: "owner",
+      });
+      const response = await fetch(
+        `https://api.github.com/user/repos?${params}`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+      }
+
+      const repos = await response.json();
+      return JSON.stringify(
+        (repos as Array<Record<string, unknown>>).map((r) => ({
+          owner: (r.owner as Record<string, unknown>)?.login,
+          repo: r.name,
+          full_name: r.full_name,
+          description: r.description,
+          private: r.private,
+          pushed_at: r.pushed_at,
+          open_issues_count: r.open_issues_count,
+        }))
+      );
+    },
+    {
+      name: "list_user_repos",
+      description:
+        "List the authenticated user's own GitHub repositories. Call this FIRST when the user does not specify a repository name so you can discover the correct owner and repo to use.",
+      schema: z.object({
+        sort: z
+          .enum(["created", "updated", "pushed", "full_name"])
+          .optional()
+          .describe("Sort order (default: pushed — most recently active first)"),
+        limit: z
+          .number()
+          .optional()
+          .describe("Max repos to return (default: 10)"),
+      }),
+    }
+  )
+);
+
 export const githubTools = [
+  listUserRepos,
   listGitHubIssues,
   listPullRequests,
   getIssueDetails,

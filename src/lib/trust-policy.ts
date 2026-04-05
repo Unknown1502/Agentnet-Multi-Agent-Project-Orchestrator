@@ -11,6 +11,13 @@ export interface TrustPolicy {
 export const DEFAULT_TRUST_POLICIES: TrustPolicy[] = [
   // GitHub tools
   {
+    toolName: "list_user_repos",
+    zone: "GREEN",
+    description: "List the authenticated user's own GitHub repositories",
+    requiresApproval: false,
+    provider: "github",
+  },
+  {
     toolName: "list_github_issues",
     zone: "GREEN",
     description: "List open issues from a GitHub repository",
