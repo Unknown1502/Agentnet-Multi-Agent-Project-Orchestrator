@@ -79,6 +79,23 @@ export async function getFederatedAccessToken(
 ): Promise<string | undefined> {
   if (!userId) return undefined;
 
+  // Notion uses a custom OAuth flow — token stored directly in Redis, not via Auth0 identities
+  if (connection === "notion") {
+    try {
+      const { getRedis, isRedisConfigured } = await import("./db");
+      if (isRedisConfigured()) {
+        const redis = await getRedis();
+        const cached = await redis.get<string>(`notion-token:${userId}`);
+        if (cached) {
+          console.log(`[FederatedTokens] Returning Notion token from Redis for ${userId}`);
+          return cached;
+        }
+      }
+    } catch {
+      // fall through to Management API check
+    }
+  }
+
   const domain = c(process.env.AUTH0_DOMAIN);
   if (!domain) return undefined;
 

@@ -66,6 +66,13 @@ function ConnectionsContent() {
     }
 
     if (justConnected) {
+      // skip_put=1 means the callback already stored everything (e.g. Notion custom flow)
+      const skipPut = searchParams.get("skip_put") === "1";
+      if (skipPut) {
+        fetchConnections(true);
+        return;
+      }
+
       // Load initial state, then call PUT to verify + mark + link the connection.
       // Pass the one-time linking token (lt) so PUT knows who the primary user was
       // before the OAuth flow replaced the session with a new sub.
