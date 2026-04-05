@@ -82,7 +82,9 @@ export default async function Home() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </a>
             <a
-              href="https://github.com"
+              href="https://github.com/Unknown1502/Agentnet-Multi-Agent-Project-Orchestrator"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-7 py-3.5 text-sm font-semibold text-gray-300 backdrop-blur-sm transition-all hover:border-white/20 hover:bg-white/10 hover:text-white"
             >
               <GitBranch className="h-4 w-4" />
@@ -93,7 +95,7 @@ export default async function Home() {
           {/* Stats row */}
           <div className="mt-16 flex flex-wrap items-center justify-center gap-x-12 gap-y-4 text-center">
             {[
-              { value: "2", label: "AI Agents" },
+              { value: "3", label: "AI Agents" },
               { value: "Zero", label: "Exposed Credentials" },
               { value: "Real-time", label: "Trust Delegation" },
             ].map((stat) => (
@@ -141,8 +143,8 @@ export default async function Home() {
               </div>
               <h3 className="mb-2 font-semibold text-white">Orchestrator</h3>
               <p className="text-sm leading-relaxed text-gray-500">
-                Gemini 2.0 Flash routes natural language commands to the right agent,
-                with LangGraph managing the interrupt-and-resume flow.
+                Llama 3.3 70b (Groq) routes natural language commands to the right
+                agent, with LangGraph managing the interrupt-and-resume flow.
               </p>
               <div className="pointer-events-none absolute inset-0 rounded-2xl bg-linear-to-br from-violet-500/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
             </div>
