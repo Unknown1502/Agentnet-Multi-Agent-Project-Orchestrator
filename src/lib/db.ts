@@ -45,10 +45,13 @@ let idCounter = 1;
 // Redis helpers — only used when UPSTASH_REDIS_REST_URL is configured
 // ---------------------------------------------------------------------------
 
+// Strip Windows CRLF that Vercel CLI injects into env var values on Windows.
+const cleanEnv = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
+
 export function isRedisConfigured(): boolean {
   return !!(
-    process.env.UPSTASH_REDIS_REST_URL &&
-    process.env.UPSTASH_REDIS_REST_TOKEN
+    cleanEnv(process.env.UPSTASH_REDIS_REST_URL) &&
+    cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN)
   );
 }
 
@@ -58,8 +61,8 @@ export async function getRedis() {
   if (!_redis) {
     const { Redis } = await import("@upstash/redis");
     _redis = new Redis({
-      url: process.env.UPSTASH_REDIS_REST_URL!,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      url: cleanEnv(process.env.UPSTASH_REDIS_REST_URL),
+      token: cleanEnv(process.env.UPSTASH_REDIS_REST_TOKEN),
     });
   }
   return _redis;

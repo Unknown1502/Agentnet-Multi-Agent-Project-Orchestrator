@@ -44,7 +44,11 @@ export async function POST(
   // obtaining a social refresh token. Token Vault then exchanges this via
   // the federated token exchange grant to get provider access tokens.
   const returnTo = `/dashboard/connections?connected=${provider}`;
-  const connectUrl = `/auth/login?connection=${encodeURIComponent(connection)}&returnTo=${encodeURIComponent(returnTo)}`;
+  // Use /auth/connect (enabled via enableConnectAccountEndpoint: true) instead of /auth/login.
+  // /auth/login starts a fresh login flow and overwrites the existing state cookie, which
+  // causes "The state parameter is invalid" on the callback. /auth/connect is designed
+  // specifically for adding a social connection to an already-authenticated session.
+  const connectUrl = `/auth/connect?connection=${encodeURIComponent(connection)}&returnTo=${encodeURIComponent(returnTo)}`;
 
   return NextResponse.json({ connectUrl });
 }
