@@ -16,7 +16,7 @@ export const auth0 = new Auth0Client({
   },
   enableConnectAccountEndpoint: true,
   onCallback: async (error, ctx) => {
-    const base = process.env.AUTH0_BASE_URL || "http://localhost:3000";
+    const base = clean(process.env.AUTH0_BASE_URL) || "http://localhost:3000";
     if (error) {
       // Log the full error server-side so it's visible in the terminal
       console.error("[Auth0 onCallback error]", {
