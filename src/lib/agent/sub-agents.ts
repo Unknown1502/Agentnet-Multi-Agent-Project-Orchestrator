@@ -7,7 +7,7 @@ import {
 } from "@langchain/core/messages";
 import type { RunnableConfig } from "@langchain/core/runnables";
 import { GraphInterrupt } from "@langchain/langgraph";
-import { githubTools } from "../tools/github-tools";
+import { githubTools, listUserRepos } from "../tools/github-tools";
 import { slackTools } from "../tools/slack-tools";
 import { getTrustZoneForTool } from "../trust-policy";
 import { getUserTrustPolicies } from "../db";
@@ -151,6 +151,45 @@ export async function runSubAgent({
     new SystemMessage(agentConfig.systemPrompt),
     new HumanMessage(instruction),
   ];
+
+  // ── GitHub: pre-fetch repos and inject as tool context before LLM loop. ──
+  // This guarantees the agent always knows the real owner/repo — the LLM
+  // never needs to guess or follow an instruction it might ignore.
+  if (agentId === "github") {
+    try {
+      const repoRaw = await listUserRepos.invoke({}, config);
+      const repoResult = typeof repoRaw === "string" ? repoRaw : JSON.stringify(repoRaw);
+      // Simulate a tool call + result so the LLM sees this as established context.
+      const syntheticCallId = "init_repos";
+      messages.push(
+        new AIMessage({
+          content: "",
+          tool_calls: [{ id: syntheticCallId, name: "list_user_repos", args: {} }],
+        })
+      );
+      messages.push(
+        new ToolMessage({
+          content: repoResult,
+          tool_call_id: syntheticCallId,
+          name: "list_user_repos",
+        })
+      );
+      onEvent?.({
+        agentId,
+        type: "sub_agent_tool_call",
+        data: { tool: "list_user_repos", args: {}, zone: "GREEN", provider: "github", agentName: agentConfig.name },
+        timestamp: new Date().toISOString(),
+      });
+      onEvent?.({
+        agentId,
+        type: "sub_agent_tool_result",
+        data: { tool: "list_user_repos", result: repoResult, zone: "GREEN", agentName: agentConfig.name },
+        timestamp: new Date().toISOString(),
+      });
+    } catch {
+      // Non-fatal — agent will fall back to its normal ReAct loop
+    }
+  }
 
   try {
     for (let step = 0; step < MAX_STEPS; step++) {
