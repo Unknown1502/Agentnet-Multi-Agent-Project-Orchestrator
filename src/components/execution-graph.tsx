@@ -162,7 +162,7 @@ function AgentNode({ node, def }: { node: AgentNode; def: typeof AGENT_DEFS.gith
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.85 }}
-            className="rounded-full border border-white/10 bg-white/4 px-2 py-0.5 text-[10px] text-white/50 max-w-[110px] truncate text-center"
+            className="rounded-full border border-white/10 bg-white/4 px-2 py-0.5 text-[10px] text-white/50 max-w-27.5 truncate text-center"
           >
             {node.lastTool}
           </motion.div>

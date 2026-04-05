@@ -84,7 +84,7 @@ export function StepUpNotification({ event, onDismiss }: StepUpNotificationProps
 
               {/* Animated top bar */}
               <motion.div
-                className={`h-1 ${isTokenVaultError ? "bg-gradient-to-r from-cyan-500 via-violet-500 to-cyan-500" : "bg-gradient-to-r from-orange-600 via-red-500 to-orange-600"}`}
+                className={`h-1 ${isTokenVaultError ? "bg-linear-to-r from-cyan-500 via-violet-500 to-cyan-500" : "bg-linear-to-r from-orange-600 via-red-500 to-orange-600"}`}
                 style={{ backgroundSize: "200% 200%" }}
               />
 
@@ -143,7 +143,7 @@ export function StepUpNotification({ event, onDismiss }: StepUpNotificationProps
                 {isTokenVaultError ? (
                   <a
                     href="/dashboard/connections"
-                    className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-cyan-600 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-500 hover:to-violet-500 hover:shadow-cyan-500/30 active:scale-[0.98]"
+                    className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-linear-to-r from-cyan-600 to-violet-600 px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition-all hover:from-cyan-500 hover:to-violet-500 hover:shadow-cyan-500/30 active:scale-[0.98]"
                   >
                     <RefreshCw className="h-4 w-4" />
                     Connect {providerLabel} Account
@@ -155,7 +155,7 @@ export function StepUpNotification({ event, onDismiss }: StepUpNotificationProps
                       <Clock className="h-4 w-4 text-orange-400/60 shrink-0" />
                       <div className="flex-1 h-1.5 rounded-full bg-white/6 overflow-hidden">
                         <motion.div
-                          className="h-full rounded-full bg-gradient-to-r from-orange-500 to-red-500"
+                          className="h-full rounded-full bg-linear-to-r from-orange-500 to-red-500"
                           style={{ width: `${progress * 100}%` }}
                           transition={{ duration: 1, ease: "linear" }}
                         />
