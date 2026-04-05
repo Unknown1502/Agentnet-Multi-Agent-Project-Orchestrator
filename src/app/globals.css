@@ -1,16 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --background: #04050d;
-  --surface: #070916;
-  --border: rgba(255, 255, 255, 0.06);
-  --accent: #22d3ee;
-  --accent-violet: #a78bfa;
+  --bg:           #020309;
+  --surface:      #080b1a;
+  --surface-2:    #0d1228;
+
+  --github:        #4F8EFF;
+  --github-bg:     rgba(79,142,255,0.07);
+  --github-border: rgba(79,142,255,0.22);
+  --github-glow:   rgba(79,142,255,0.15);
+
+  --slack:         #E01E8C;
+  --slack-bg:      rgba(224,30,140,0.07);
+  --slack-border:  rgba(224,30,140,0.22);
+  --slack-glow:    rgba(224,30,140,0.15);
+
+  --orch:          #00D9FF;
+  --orch-bg:       rgba(0,217,255,0.07);
+  --orch-border:   rgba(0,217,255,0.22);
+  --orch-glow:     rgba(0,217,255,0.12);
+
+  --trust-green:   #00E57A;
+  --trust-yellow:  #F5C510;
+  --trust-red:     #FF3D5A;
+
+  --text:          rgba(255,255,255,0.88);
+  --text-muted:    rgba(255,255,255,0.38);
+  --text-faint:    rgba(255,255,255,0.16);
+  --border-subtle: rgba(255,255,255,0.05);
 }
 
 @theme inline {
   --color-background: var(--background);
-  --color-foreground: #f1f5f9;
+  --color-background: var(--bg);
+  --color-foreground: rgba(255,255,255,0.88);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -21,66 +44,68 @@
 }
 
 body {
-  background: var(--background);
-  color: #f1f5f9;
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: rgba(255,255,255,0.88);
+  font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* Fine line grid overlay */
+/* Subtle dot-grid backdrop */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-  background-size: 44px 44px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
   pointer-events: none;
   z-index: 0;
 }
 
 /* ── Keyframes ─────────────────────────────────────── */
 
-@keyframes aurora {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33%       { transform: translate(50px, -30px) scale(1.1); }
-  66%       { transform: translate(-30px, 20px) scale(0.9); }
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-8px); }
-}
-
-@keyframes shimmer-text {
-  0%   { background-position: 0% center; }
+@keyframes shimmer {
+  0%   { background-position: 200% center; }
   100% { background-position: -200% center; }
 }
 
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  100% { transform: scale(1.4); opacity: 0;   }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 1.0; }
+}
+
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* ── Animation classes ─────────────────────────────── */
 
-.animate-aurora   { animation: aurora   10s ease-in-out infinite; }
-.animate-float    { animation: float     3s ease-in-out infinite; }
-.animate-slide-up { animation: slide-up  0.35s ease-out forwards; }
+.animate-slide-up { animation: slide-up 0.3s ease-out forwards; }
+.animate-fade-in  { animation: fade-in  0.4s ease-out forwards; }
+.animate-breathe  { animation: breathe  2.4s ease-in-out infinite; }
 
 /* ── Gradient text ─────────────────────────────────── */
 
 .gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, #22d3ee 45%, #a78bfa 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #00D9FF 45%, #4F8EFF 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer-text 6s linear infinite;
+  animation: shimmer 7s linear infinite;
 }
 
 .gradient-text-static {
-  background: linear-gradient(135deg, #22d3ee, #a78bfa);
+  background: linear-gradient(135deg, #00D9FF, #4F8EFF);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

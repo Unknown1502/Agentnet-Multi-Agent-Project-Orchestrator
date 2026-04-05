@@ -29,22 +29,18 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="relative flex h-screen overflow-hidden bg-[#04050d]">
-      {/* Animated ambient orbs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="animate-aurora absolute -top-52 -left-20 h-150 w-150 rounded-full bg-cyan-500/4 blur-[160px]" />
-        <div
-          className="animate-aurora absolute -bottom-32 -right-20 h-125 w-125 rounded-full bg-violet-600/5 blur-[140px]"
-          style={{ animationDelay: "-3s" }}
-        />
-        <div
-          className="animate-aurora absolute top-1/2 left-1/2 h-100 w-100 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-400/2 blur-[120px]"
-          style={{ animationDelay: "-6s" }}
-        />
+    <div className="relative flex h-screen flex-col overflow-hidden bg-[#020309]">
+      {/* Ambient background orbs */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-48 left-1/4 h-140 w-140 -translate-x-1/2 rounded-full bg-[#4F8EFF]/2.5 blur-[130px]" />
+        <div className="absolute -bottom-48 right-1/4 h-115 w-115 translate-x-1/2 rounded-full bg-[#E01E8C]/2.5 blur-[110px]" />
+        <div className="absolute top-1/3 left-1/2 h-70 w-70 -translate-x-1/2 rounded-full bg-[#00D9FF]/1.5 blur-[80px]" />
       </div>
+
       <NavSidebar />
-      <main className="relative z-10 flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-5xl px-8 py-8">{children}</div>
+
+      <main className="relative z-10 flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+        {children}
       </main>
     </div>
   );
