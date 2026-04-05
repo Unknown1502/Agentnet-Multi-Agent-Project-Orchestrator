@@ -98,27 +98,9 @@ export async function PUT(
   const sessionV4 = session as { tokenSet?: { refreshToken?: string } } & Record<string, unknown>;
   const refreshToken = (sessionV4.tokenSet?.refreshToken as string | undefined) || undefined;
 
-  // ── Step 1: Verify Token Vault exchange works BEFORE writing any "Connected" marker.
-  // If this fails the Auth0 application is probably missing the Token Exchange grant type.
-  // Go to: Auth0 Dashboard → Applications → [App] → Advanced Settings → Grant Types
-  // → enable "Token Exchange".  Also confirm the social connection has Purpose set to
-  // "Authentication and Connected Accounts for Token Vault".
-  const vaultWorking = await probeTokenVault(connection, refreshToken);
-  if (!vaultWorking) {
-    console.error(`[PUT ${provider}] Token Vault probe FAILED. refreshToken present: ${!!refreshToken}`);
-    return NextResponse.json({
-      ok: false,
-      vaultError: true,
-      error:
-        `Authorized ${provider} via OAuth but the Token Vault exchange failed — the agent cannot use this provider yet.\n\n` +
-        `Fix in Auth0 Dashboard:\n` +
-        `1. Applications → [Your App] → Settings → Advanced → Grant Types → enable "Token Exchange"\n` +
-        `2. Authentication → Social → ${provider} → ensure Purpose = "Authentication and Connected Accounts for Token Vault"\n` +
-        `3. Re-connect this provider after making those changes.`,
-    });
-  }
-
-  // ── Step 2: Persist connection markers (by sub AND by email for cross-session lookup)
+  // ── Step 1: Persist connection markers (by sub AND by email).
+  // Always write FIRST regardless of Token Vault probe result — the OAuth did succeed
+  // and the UI must show "Connected". Vault configuration issues are advisory.
   const ex = 7 * 24 * 3600;
   if (isRedisConfigured()) {
     try {
@@ -135,11 +117,27 @@ export async function PUT(
     }
   }
 
+  // ── Step 2: Probe Token Vault to warn if agent won't work yet.
+  // The probe is ADVISORY — it tells the user what to fix in Auth0 Dashboard.
+  // It does NOT block the connected state or the account linking step.
+  const vaultWorking = await probeTokenVault(connection, refreshToken);
+  if (!vaultWorking) {
+    console.warn(`[PUT ${provider}] Token Vault probe failed. refreshToken present: ${!!refreshToken}. Connection IS marked.`);
+    return NextResponse.json({
+      ok: true,
+      vaultWarning: true,
+      error:
+        `${provider.charAt(0).toUpperCase() + provider.slice(1)} connected via OAuth, but the Token Vault exchange ` +
+        `isn't configured yet — the agent will prompt you to re-connect until fixed.\n\n` +
+        `Fix in Auth0 Dashboard:\n` +
+        `1. Applications → [Your App] → Settings → Advanced → Grant Types → enable "Token Exchange"\n` +
+        `2. Authentication → Social → ${provider} → Purpose = "Authentication and Connected Accounts for Token Vault"\n` +
+        `3. For Notion: ensure the redirect URI in your Notion OAuth app is exactly:\n` +
+        `   https://<your-tenant>.us.auth0.com/login/callback`,
+    });
+  }
+
   // ── Step 3: Account linking — link this social identity to the primary Auth0 user.
-  // Without this, GitHub session (github|A) and Slack session (slack|B) are separate Auth0
-  // users. Token Vault stores credentials per user, so only one provider works per session.
-  // After linking, ALL future logins through any linked identity return the primary sub,
-  // and Token Vault credentials for all providers are accessible under that one sub.
   if (isRedisConfigured() && userEmail) {
     try {
       const redis = await getRedis();

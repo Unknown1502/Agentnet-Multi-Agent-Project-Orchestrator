@@ -21,6 +21,7 @@ function ConnectionsContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [vaultWarning, setVaultWarning] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
@@ -72,9 +73,9 @@ function ConnectionsContent() {
           const putRes = await fetch(`/api/connections/${justConnected}`, { method: "PUT" });
           const putData = putRes.ok ? await putRes.json().catch(() => ({})) : {};
 
-          if (putData.vaultError) {
-            // Token Vault exchange failed — show actionable error
-            setConnectError(putData.error || "Token Vault exchange failed. Check Auth0 app configuration.");
+          if (putData.vaultWarning || putData.vaultError) {
+            // Token Vault not yet configured — advisory warning, connection IS marked
+            setVaultWarning(putData.error || "Token Vault exchange not configured. Enable Token Exchange grant in Auth0 Dashboard.");
             await fetchConnections(true);
             return;
           }
@@ -126,6 +127,19 @@ function ConnectionsContent() {
 
   return (
     <div className="space-y-6">
+      {vaultWarning && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 px-4 py-3 text-sm text-amber-300">
+          <div className="font-medium mb-1">⚠ Token Vault not fully configured</div>
+          <div className="text-xs text-amber-400/80 whitespace-pre-wrap leading-relaxed">{vaultWarning}</div>
+          <button
+            onClick={() => setVaultWarning(null)}
+            className="mt-2 text-xs text-amber-400/60 hover:text-amber-300 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {connectError && (
         <div className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-3 text-sm text-red-400">
           <div className="whitespace-pre-wrap">{connectError}</div>

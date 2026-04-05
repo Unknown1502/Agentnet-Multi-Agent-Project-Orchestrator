@@ -49,6 +49,20 @@ export const auth0 = new Auth0Client({
           "error",
           "Your login session expired or was used twice. Please try connecting again. (invalid_state)"
         );
+      } else if (
+        code === "authorization_error" ||
+        causeRecord.code === "authorization_error"
+      ) {
+        // Most common cause: the OAuth app's redirect URI in the social provider's
+        // developer portal doesn't include the Auth0 callback URL.
+        // For Notion: go to https://www.notion.so/my-integrations → OAuth Domain & URIs
+        // and add: https://<your-auth0-tenant>.us.auth0.com/login/callback
+        url.searchParams.set(
+          "error",
+          "Authorization flow failed. For Notion: ensure your Notion OAuth app's redirect URI includes " +
+            `https://${clean(process.env.AUTH0_DOMAIN)}/login/callback. ` +
+            "For all providers: check that the social connection is enabled in Auth0 Dashboard → Authentication → Social. (authorization_error)"
+        );
       } else {
         const displayMsg = code
           ? `${error.message || "Authentication failed"} (${code})`

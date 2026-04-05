@@ -60,7 +60,11 @@ export async function POST(request: NextRequest) {
         configurable: {
           thread_id: body.threadId ?? crypto.randomUUID(),
           user_id: userId,
-          refresh_token: refreshToken ?? "",
+          // Pass undefined (not empty string) when no refresh token is available.
+          // The auth0-ai withTokenVault callback does `token || undefined`, so passing ""
+          // would be coerced to undefined anyway — but undefined is semantically clearer
+          // and avoids the SDK interpreting "" as a present but invalid token.
+          refresh_token: refreshToken,
         },
       };
 
