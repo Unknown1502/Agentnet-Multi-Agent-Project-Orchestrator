@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { CommandInput } from "@/components/command-input";
 import { AgentActivityFeed } from "@/components/agent-activity-feed";
 import { StepUpNotification } from "@/components/step-up-notification";
+import { ExecutionGraph } from "@/components/execution-graph";
 import {
   Bot,
   Zap,
@@ -12,6 +14,9 @@ import {
   BookOpen,
   Sparkles,
   ArrowRight,
+  RotateCcw,
+  ChevronRight,
+  Play,
 } from "lucide-react";
 import type { AgentEvent } from "@/lib/agent/state";
 
@@ -50,10 +55,16 @@ export default function DashboardPage() {
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [interruptEvent, setInterruptEvent] = useState<AgentEvent | null>(null);
+  // Replay state
+  const [replayEvents, setReplayEvents] = useState<AgentEvent[]>([]);
+  const [isReplaying, setIsReplaying] = useState(false);
+  const [completedEvents, setCompletedEvents] = useState<AgentEvent[]>([]);
+  const replayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSubmit = useCallback(async (prompt: string) => {
     setIsLoading(true);
     setEvents([]);
+    setReplayEvents([]);
     setInterruptEvent(null);
 
     try {
@@ -80,6 +91,7 @@ export default function DashboardPage() {
 
       const decoder = new TextDecoder();
       let buffer = "";
+      const collected: AgentEvent[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -93,6 +105,7 @@ export default function DashboardPage() {
           if (line.startsWith("data: ")) {
             try {
               const event: AgentEvent = JSON.parse(line.slice(6));
+              collected.push(event);
               setEvents((prev) => [...prev, event]);
               if (event.type === "interrupt") setInterruptEvent(event);
             } catch {
@@ -101,10 +114,9 @@ export default function DashboardPage() {
           }
         }
       }
+      setCompletedEvents(collected);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Connection lost";
-      // If we already have events, the stream was cut mid-flight (Vercel timeout).
-      // Surface a clear message rather than generic "connection error".
       setEvents((prev) => [
         ...prev,
         {
@@ -122,6 +134,39 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const handleReplay = useCallback(() => {
+    if (isReplaying || completedEvents.length === 0) return;
+    setIsReplaying(true);
+    setReplayEvents([]);
+
+    let i = 0;
+    const step = () => {
+      if (i >= completedEvents.length) {
+        setIsReplaying(false);
+        return;
+      }
+      setReplayEvents((prev) => [...prev, completedEvents[i]]);
+      i++;
+      replayTimerRef.current = setTimeout(step, 420);
+    };
+    step();
+  }, [completedEvents, isReplaying]);
+
+  // Derive trust stats from events
+  const trustStats = events.reduce(
+    (acc, e) => {
+      if (e.type === "sub_agent_trust_event" || e.type === "trust_event") {
+        const zone = (e.data.zone as string) || "GREEN";
+        acc[zone] = (acc[zone] || 0) + 1;
+      }
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+  const totalChecks = Object.values(trustStats).reduce((s, n) => s + n, 0);
+
+  const displayEvents = isReplaying ? replayEvents : events;
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -134,13 +179,17 @@ export default function DashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           {isLoading && (
-            <span className="flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-400">
+            <motion.span
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="flex items-center gap-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-400"
+            >
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
                 <span className="relative h-1.5 w-1.5 rounded-full bg-cyan-500" />
               </span>
               Running
-            </span>
+            </motion.span>
           )}
           <div className="flex items-center gap-1.5 rounded-full border border-white/6 bg-white/2 px-3 py-1.5 text-xs text-white/40">
             <Bot className="h-3.5 w-3.5 text-cyan-400" />
@@ -201,63 +250,147 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Step-up notification */}
+      {/* Step-up notification — fullscreen overlay */}
       <StepUpNotification
         event={interruptEvent}
         onDismiss={() => setInterruptEvent(null)}
       />
 
-      {/* Activity or empty state */}
-      {events.length > 0 ? (
-        <div className="animate-slide-up">
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-cyan-400" />
-              <h2 className="text-sm font-semibold text-white/70">Agent Activity</h2>
-              <span className="rounded-full border border-white/8 bg-white/3 px-2 py-0.5 text-[10px] text-white/40">
-                {events.length}
-              </span>
-            </div>
-            <span
-              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                isLoading
-                  ? "border-cyan-500/25 bg-cyan-500/8 text-cyan-400"
-                  : "border-emerald-500/20 bg-emerald-500/8 text-emerald-400"
-              }`}
-            >
-              {isLoading ? (
-                <>
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-                    <span className="relative h-1.5 w-1.5 rounded-full bg-cyan-500" />
+      {/* Activity area */}
+      <AnimatePresence mode="wait">
+        {displayEvents.length > 0 ? (
+          <motion.div
+            key="activity"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="space-y-4"
+          >
+            {/* Execution graph */}
+            <ExecutionGraph events={displayEvents} isLoading={isLoading && !isReplaying} />
+
+            {/* Trust Insights + Replay row */}
+            {totalChecks > 0 || completedEvents.length > 0 ? (
+              <div className="flex items-stretch gap-3 flex-wrap">
+                {/* Trust insights pill row */}
+                {totalChecks > 0 && (
+                  <div className="flex items-center gap-2 rounded-xl border border-white/6 bg-white/2 px-4 py-2.5 flex-wrap">
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-white/30 mr-1">Trust Checks</span>
+                    {trustStats["GREEN"] ? (
+                      <span className="flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/8 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                        {trustStats["GREEN"]} Low Risk
+                      </span>
+                    ) : null}
+                    {trustStats["YELLOW"] ? (
+                      <span className="flex items-center gap-1 rounded-full border border-yellow-500/30 bg-yellow-500/8 px-2.5 py-0.5 text-xs font-medium text-yellow-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                        {trustStats["YELLOW"]} Medium
+                      </span>
+                    ) : null}
+                    {trustStats["RED"] ? (
+                      <span className="flex items-center gap-1 rounded-full border border-red-500/30 bg-red-500/8 px-2.5 py-0.5 text-xs font-medium text-red-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+                        {trustStats["RED"]} High Risk
+                      </span>
+                    ) : null}
+                    <span className="ml-1 text-xs text-white/25">{totalChecks} total</span>
+                  </div>
+                )}
+
+                {/* Replay button */}
+                {!isLoading && completedEvents.length > 0 && (
+                  <button
+                    onClick={handleReplay}
+                    disabled={isReplaying}
+                    className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/3 px-4 py-2.5 text-xs font-medium text-white/50 transition-all hover:border-cyan-500/30 hover:bg-cyan-500/6 hover:text-cyan-300 disabled:opacity-40"
+                  >
+                    {isReplaying ? (
+                      <>
+                        <Play className="h-3.5 w-3.5 text-cyan-400 animate-pulse" />
+                        Replaying…
+                      </>
+                    ) : (
+                      <>
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Replay Execution
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            ) : null}
+
+            {/* Activity log */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-cyan-400" />
+                  <h2 className="text-sm font-semibold text-white/70">Agent Activity</h2>
+                  <span className="rounded-full border border-white/8 bg-white/3 px-2 py-0.5 text-[10px] text-white/40">
+                    {displayEvents.length}
                   </span>
-                  Live
-                </>
-              ) : (
-                "Complete"
-              )}
-            </span>
-          </div>
-          <div className="rounded-2xl border border-white/6 bg-white/2 p-4">
-            <AgentActivityFeed events={events} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/2 py-24 text-center">
-          <div className="animate-float relative mb-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/8 bg-linear-to-br from-cyan-500/10 to-violet-500/10 shadow-lg shadow-cyan-500/5">
-              <Bot className="h-7 w-7 text-white/20" />
+                  {isReplaying && (
+                    <span className="rounded-full border border-cyan-500/30 bg-cyan-500/8 px-2 py-0.5 text-[10px] text-cyan-400 animate-pulse">
+                      Replay
+                    </span>
+                  )}
+                </div>
+                <span
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                    isLoading && !isReplaying
+                      ? "border-cyan-500/25 bg-cyan-500/8 text-cyan-400"
+                      : isReplaying
+                      ? "border-violet-500/25 bg-violet-500/8 text-violet-400"
+                      : "border-emerald-500/20 bg-emerald-500/8 text-emerald-400"
+                  }`}
+                >
+                  {isLoading && !isReplaying ? (
+                    <>
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                        <span className="relative h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                      </span>
+                      Live
+                    </>
+                  ) : isReplaying ? (
+                    <>
+                      <ChevronRight className="h-3 w-3" />
+                      Replay
+                    </>
+                  ) : (
+                    "Complete"
+                  )}
+                </span>
+              </div>
+              <div className="rounded-2xl border border-white/6 bg-white/2 p-4">
+                <AgentActivityFeed events={displayEvents} />
+              </div>
             </div>
-            <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/20 shadow-sm shadow-cyan-500/20">
-              <Sparkles className="h-2.5 w-2.5 text-cyan-400" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex flex-col items-center justify-center rounded-2xl border border-white/5 bg-white/2 py-24 text-center"
+          >
+            <div className="animate-float relative mb-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/8 bg-linear-to-br from-cyan-500/10 to-violet-500/10 shadow-lg shadow-cyan-500/5">
+                <Bot className="h-7 w-7 text-white/20" />
+              </div>
+              <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-cyan-500/40 bg-cyan-500/20 shadow-sm shadow-cyan-500/20">
+                <Sparkles className="h-2.5 w-2.5 text-cyan-400" />
+              </div>
             </div>
-          </div>
-          <p className="font-semibold text-white/40 text-sm">Ready for your command</p>
-          <p className="mt-1.5 text-xs text-white/20">
-            Type a prompt above or click a suggestion to get started
-          </p>
-        </div>
-      )}
+            <p className="font-semibold text-white/40 text-sm">Ready for your command</p>
+            <p className="mt-1.5 text-xs text-white/20">
+              Type a prompt above or click a suggestion to get started
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
