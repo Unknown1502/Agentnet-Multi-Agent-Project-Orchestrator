@@ -5,7 +5,7 @@ export interface TrustPolicy {
   zone: TrustZone;
   description: string;
   requiresApproval: boolean;
-  provider: "github" | "slack" | "notion";
+  provider: "github" | "slack";
 }
 
 export const DEFAULT_TRUST_POLICIES: TrustPolicy[] = [
@@ -81,36 +81,6 @@ export const DEFAULT_TRUST_POLICIES: TrustPolicy[] = [
     description: "Archive a Slack channel, making it read-only",
     requiresApproval: true,
     provider: "slack",
-  },
-
-  // Notion tools
-  {
-    toolName: "search_notion_pages",
-    zone: "GREEN",
-    description: "Search pages and databases in Notion",
-    requiresApproval: false,
-    provider: "notion",
-  },
-  {
-    toolName: "create_notion_page",
-    zone: "GREEN",
-    description: "Create a new Notion page inside a parent page",
-    requiresApproval: false,
-    provider: "notion",
-  },
-  {
-    toolName: "append_notion_blocks",
-    zone: "YELLOW",
-    description: "Append content blocks to an existing Notion page",
-    requiresApproval: false,
-    provider: "notion",
-  },
-  {
-    toolName: "archive_notion_page",
-    zone: "RED",
-    description: "Archive (soft-delete) a Notion page",
-    requiresApproval: true,
-    provider: "notion",
   },
 ];
 

@@ -62,15 +62,15 @@ export async function GET() {
   });
   const allConns = connsRes.ok ? await connsRes.json() : [];
 
-  // Also check social connections (github, slack, notion use strategy=social in Auth0)
+  // Also check social connections (github, slack use strategy=social in Auth0)
   const socialRes = await fetch(`https://${domain}/api/v2/connections?fields=name,id,enabled_clients,strategy&include_fields=true`, {
     headers: { Authorization: `Bearer ${mgmtToken}` },
   });
   const allSocial = socialRes.ok ? await socialRes.json() : [];
 
-  const relevantNames = ["github", "notion", "sign-in-with-slack", "slack"];
+  const relevantNames = ["github", "sign-in-with-slack", "slack"];
   result.connections = (allSocial as Array<{ name: string; id: string; strategy: string; enabled_clients?: string[] }>)
-    .filter((conn) => relevantNames.some((n) => conn.name?.toLowerCase().includes(n)) || ["github", "slack", "notion"].includes(conn.strategy))
+    .filter((conn) => relevantNames.some((n) => conn.name?.toLowerCase().includes(n)) || ["github", "slack"].includes(conn.strategy))
     .map((conn) => ({
       name: conn.name,
       id: conn.id,

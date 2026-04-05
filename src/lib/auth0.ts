@@ -57,7 +57,7 @@ export const auth0 = new Auth0Client({
           "error",
           detail
             ? `Authorization failed: ${detail} (authorization_error)`
-            : "Authorization failed. In Auth0 Dashboard → Authentication → Social → Notion: (1) toggle the connection ON for your app, (2) paste the correct Client ID & Secret from notion.so/my-integrations, (3) enable \"Store user access token\". (authorization_error)"
+            : "Authorization failed. Check your social connection configuration in the Auth0 Dashboard. (authorization_error)"
         );
       } else {
         url.searchParams.set("error", code ? `${error.message || "Authentication failed"} (${code})` : error.message || "Authentication failed");

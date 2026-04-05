@@ -71,30 +71,13 @@ interface Auth0Identity {
  * Returns the OAuth access token Auth0 stored for a linked social identity.
  *
  * @param userId   - Auth0 user sub (e.g. "auth0|abc123" or "github|123456")
- * @param connection - Auth0 connection name (e.g. "github", "sign-in-with-slack", "notion")
+ * @param connection - Auth0 connection name (e.g. "github", "sign-in-with-slack")
  */
 export async function getFederatedAccessToken(
   userId: string | undefined,
   connection: string,
 ): Promise<string | undefined> {
   if (!userId) return undefined;
-
-  // Notion uses a custom OAuth flow — token stored directly in Redis, not via Auth0 identities
-  if (connection === "notion") {
-    try {
-      const { getRedis, isRedisConfigured } = await import("./db");
-      if (isRedisConfigured()) {
-        const redis = await getRedis();
-        const cached = await redis.get<string>(`notion-token:${userId}`);
-        if (cached) {
-          console.log(`[FederatedTokens] Returning Notion token from Redis for ${userId}`);
-          return cached;
-        }
-      }
-    } catch {
-      // fall through to Management API check
-    }
-  }
 
   const domain = c(process.env.AUTH0_DOMAIN);
   if (!domain) return undefined;

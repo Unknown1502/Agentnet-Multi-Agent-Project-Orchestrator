@@ -66,7 +66,6 @@ function ConnectionsContent() {
     }
 
     if (justConnected) {
-      // skip_put=1 means the callback already stored everything (e.g. Notion custom flow)
       const skipPut = searchParams.get("skip_put") === "1";
       if (skipPut) {
         fetchConnections(true);

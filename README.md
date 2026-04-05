@@ -1,6 +1,6 @@
 # AgentNet — Multi-Agent Project Orchestrator
 
-A hackathon submission for **Authorized to Act: Auth0 for AI Agents** demonstrating cascading trust delegation across GitHub, Slack, and Notion using Auth0 Token Vault, CIBA step-up authorization, and a LangGraph-based multi-agent orchestration system.
+A hackathon submission for **Authorized to Act: Auth0 for AI Agents** demonstrating cascading trust delegation across GitHub and Slack using Auth0 Token Vault, CIBA step-up authorization, and a LangGraph-based multi-agent orchestration system.
 
 ## Architecture
 
@@ -13,12 +13,12 @@ User (Natural Language Command)
        |  parses intent, builds task plan
        |
   +-------------+-------------+
-  |             |             |
-[GitHub Agent] [Slack Agent] [Notion Agent]
-  |             |             |
-  GitHub tools  Slack tools   Notion tools
-  |             |             |
-  +-------------+-------------+
+  |             |
+[GitHub Agent] [Slack Agent]
+  |             |
+  GitHub tools  Slack tools
+  |             |
+  +-------------+
        |
   [Auth0 Token Vault — Federated Token Exchange]
   (each agent fetches its own short-lived provider token)
@@ -33,7 +33,7 @@ User (Natural Language Command)
 ### Auth0 Integration Points
 
 1. **Authentication**: `@auth0/nextjs-auth0` v4 — middleware-based session management, refresh tokens via `offline_access` scope
-2. **Token Vault**: Federated token exchange (`grant_type: federated-connection-access-token`) for GitHub, Slack, and Notion OAuth tokens via `@auth0/ai-langchain`
+2. **Token Vault**: Federated token exchange (`grant_type: federated-connection-access-token`) for GitHub and Slack OAuth tokens via `@auth0/ai-langchain`
 3. **CIBA (Client Initiated Backchannel Authentication)**: Step-up authorization for high-risk RED zone actions (merge PR, archive channels, etc.)
 4. **Trust Zones**: Configurable GREEN / YELLOW / RED risk levels per agent tool, stored in Redis with in-memory fallback
 
@@ -42,7 +42,7 @@ User (Natural Language Command)
 ```
 User Session (Auth0 Refresh Token at session.tokenSet.refreshToken)
     → Token Exchange (M2M client + federated-connection grant)
-    → Provider Access Token (GitHub / Slack / Notion)
+    → Provider Access Token (GitHub / Slack)
     → Agent Tool Execution (least-privilege, scoped per sub-agent)
 ```
 
@@ -51,7 +51,7 @@ User Session (Auth0 Refresh Token at session.tokenSet.refreshToken)
 - **Framework**: Next.js 16 (App Router, TypeScript, Turbopack)
 - **Auth**: `@auth0/nextjs-auth0` v4, `@auth0/ai-langchain` v5, `@auth0/ai` v6
 - **AI / LLM**: Groq — `llama-3.3-70b-versatile` (free tier, tool-calling capable)
-- **Orchestration**: LangGraph `StateGraph` — orchestrator + 3 isolated sub-agents
+- **Orchestration**: LangGraph `StateGraph` — orchestrator + 2 isolated sub-agents
 - **Database**: SQLite (`better-sqlite3`) for audit trail; Upstash Redis for caching
 - **UI**: Tailwind CSS v4, Lucide Icons — dark cyan/violet theme
 
@@ -61,7 +61,7 @@ User Session (Auth0 Refresh Token at session.tokenSet.refreshToken)
 - Auth0 tenant with:
   - Regular Web Application (Authorization Code + Refresh Token grants)
   - Machine-to-Machine app for Token Vault (Token Vault grant enabled)
-  - Social connections: GitHub, Slack (`sign-in-with-slack`), Notion
+  - Social connections: GitHub, Slack (`sign-in-with-slack`)
   - CIBA / Guardian enabled for step-up authorization
 - Groq API key (free — no credit card required at [console.groq.com](https://console.groq.com))
 - _(Optional)_ Upstash Redis for persistent audit logs and trust policy caching
@@ -124,9 +124,8 @@ Enable in **Auth0 Dashboard → Authentication → Social**:
 |---|---|---|
 | GitHub | `github` | `repo`, `read:org`, `read:user` |
 | Slack | `sign-in-with-slack` | `chat:write`, `channels:read`, `channels:manage`, `users:read` |
-| Notion | `notion` | _(managed by Notion OAuth)_ |
 
-All three connections must be enabled on **both** the Regular Web App and the Token Vault M2M app.
+Both connections must be enabled on **both** the Regular Web App and the Token Vault M2M app.
 
 #### CIBA / Step-Up Auth
 
@@ -146,9 +145,9 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Zone | Behavior | Examples |
 |---|---|---|
-| GREEN | Auto-approved, logged | List issues, list channels, search Notion pages |
-| YELLOW | Logged with full audit | Post Slack message, create issue, create Notion page |
-| RED | Requires CIBA step-up push notification | Merge PR, archive channel, archive Notion page |
+| GREEN | Auto-approved, logged | List issues, list channels, post messages |
+| YELLOW | Logged with full audit | Comment on PR, create issue, create Slack channel |
+| RED | Requires CIBA step-up push notification | Merge PR, archive Slack channel |
 
 Trust zones are configurable per tool in the **Trust Configuration** dashboard.
 
@@ -164,7 +163,7 @@ src/
       connections/      # Connection status probe + OAuth initiation
     dashboard/
       page.tsx          # Main command center + live activity feed
-      connections/      # OAuth connection management (GitHub/Slack/Notion)
+      connections/      # OAuth connection management (GitHub/Slack)
       audit/            # Audit trail viewer
       trust/            # Trust zone configuration
     page.tsx            # Landing / sign-in page
@@ -179,7 +178,7 @@ src/
     nav-sidebar.tsx          # Navigation sidebar
   lib/
     auth0.ts            # Auth0Client initialization (nextjs-auth0 v4)
-    auth0-ai.ts         # Token Vault wrappers (withGitHubAccess, etc.)
+    auth0-ai.ts         # Token Vault wrappers (withGitHubAccess, withSlackAccess)
     token-vault.ts      # session.tokenSet.refreshToken extraction helper
     trust-policy.ts     # Trust zone definitions per tool
     session.ts          # Session helper utilities
@@ -188,20 +187,19 @@ src/
     agent/
       graph.ts          # Orchestrator LangGraph StateGraph
       state.ts          # Agent state types and event types
-      sub-agents.ts     # GitHub / Slack / Notion isolated sub-agents
+      sub-agents.ts     # GitHub / Slack isolated sub-agents
     tools/
       github-tools.ts   # GitHub tools: list issues, create issue, list PRs, merge PR
       slack-tools.ts    # Slack tools: list channels, post message, create/archive channel
-      notion-tools.ts   # Notion tools: search pages, create page, append content, archive page
   proxy.ts              # Auth0 middleware + route protection
 ```
 
 ## Demo Scenario
 
-1. **Connect accounts** — link GitHub, Slack, and Notion via Auth0 Token Vault (OAuth flow per provider)
-2. **Issue a command** — e.g. *"Create a GitHub issue for the login bug, post about it in #engineering on Slack, and create a Notion page tracking it"*
-3. **Watch the agents** — Orchestrator delegates to GitHub, Slack, and Notion sub-agents in parallel; GREEN/YELLOW actions execute automatically
-4. **Step-up auth** — RED zone actions (merge PR, archive) trigger a CIBA push notification on your Guardian app
+1. **Connect accounts** — link GitHub and Slack via Auth0 Token Vault (OAuth flow per provider)
+2. **Issue a command** — e.g. *"Create a GitHub issue for the login bug and post about it in #engineering on Slack"*
+3. **Watch the agents** — Orchestrator delegates to GitHub and Slack sub-agents in parallel; GREEN/YELLOW actions execute automatically
+4. **Step-up auth** — RED zone actions (merge PR, archive channel) trigger a CIBA push notification on your Guardian app
 5. **Audit trail** — every action is logged with user, provider, trust zone, and timestamp
 
 ## Security Model

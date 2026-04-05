@@ -1,6 +1,6 @@
 "use client";
 
-import { GitBranch, MessageSquare, BookOpen, Loader2, Key, PlugZap } from "lucide-react";
+import { GitBranch, MessageSquare, Loader2, Key, PlugZap } from "lucide-react";
 
 const PROVIDER_CONFIG: Record<
   string,
@@ -36,17 +36,6 @@ const PROVIDER_CONFIG: Record<
     connectedText: "text-emerald-400",
     btnClass:
       "bg-linear-to-r from-emerald-600 to-emerald-700 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 hover:from-emerald-500 hover:to-emerald-600",
-  },
-  notion: {
-    icon: <BookOpen className="h-6 w-6" />,
-    headerGradient: "from-amber-600/25 via-amber-500/10 to-transparent",
-    iconRing: "bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/25",
-    connectedBorder: "border-amber-500/20",
-    connectedBg: "bg-amber-500/4",
-    connectedBadge: "border-amber-500/20 bg-amber-500/10 text-amber-300",
-    connectedText: "text-amber-400",
-    btnClass:
-      "bg-linear-to-r from-amber-600 to-amber-700 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/35 hover:from-amber-500 hover:to-amber-600",
   },
 };
 
@@ -158,7 +147,6 @@ export function ConnectionCard({ connection, onConnect, isConnecting }: Connecti
 const ICON_MAP: Record<string, React.ReactNode> = {
   github: <GitBranch className="h-5 w-5" />,
   slack: <MessageSquare className="h-5 w-5" />,
-  notion: <BookOpen className="h-5 w-5" />,
 };
 
 const COLOR_MAP: Record<string, { icon: string; ring: string; badge: string; btn: string; glow: string }> = {
@@ -175,13 +163,6 @@ const COLOR_MAP: Record<string, { icon: string; ring: string; badge: string; btn
     badge: "border-emerald-500/20 bg-emerald-500/8 text-emerald-400",
     btn: "border-emerald-500/20 bg-emerald-500/8 text-emerald-300 hover:border-emerald-500/40 hover:bg-emerald-500/15 hover:text-emerald-200",
     glow: "shadow-emerald-500/10",
-  },
-  notion: {
-    icon: "bg-amber-500/10 text-amber-400 ring-amber-500/20",
-    ring: "hover:border-amber-500/25 hover:shadow-amber-500/5",
-    badge: "border-amber-500/20 bg-amber-500/8 text-amber-400",
-    btn: "border-amber-500/20 bg-amber-500/8 text-amber-300 hover:border-amber-500/40 hover:bg-amber-500/15 hover:text-amber-200",
-    glow: "shadow-amber-500/10",
   },
 };
 

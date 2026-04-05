@@ -11,7 +11,6 @@ const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
 const PROVIDER_MAP: Record<string, string> = {
   github: "github",
   slack: "sign-in-with-slack",
-  notion: "notion",
 };
 
 export async function POST(
@@ -34,13 +33,6 @@ export async function POST(
   }
 
   const currentSub = session.user.sub as string;
-
-  // Notion: use our own OAuth flow — Auth0's Custom Social Connection can't handle
-  // Notion's token endpoint which requires JSON body (not form-encoded).
-  if (provider === "notion") {
-    await getRedis().then((r) => r.del(`conn-status:${currentSub}`)).catch(() => {});
-    return NextResponse.json({ connectUrl: "/api/auth/notion/start" });
-  }
 
   // Store a one-time linking token that maps back to the current (primary) user.
   // After the social OAuth replaces the session with a new sub, PUT reads this token

@@ -9,7 +9,6 @@ import type { RunnableConfig } from "@langchain/core/runnables";
 import { GraphInterrupt } from "@langchain/langgraph";
 import { githubTools } from "../tools/github-tools";
 import { slackTools } from "../tools/slack-tools";
-import { notionTools } from "../tools/notion-tools";
 import { getTrustZoneForTool } from "../trust-policy";
 import { getUserTrustPolicies } from "../db";
 import type { TrustEvent, CompletedAction } from "./state";
@@ -17,7 +16,7 @@ import type { TrustEvent, CompletedAction } from "./state";
 // Strip CRLF injected by Windows Vercel CLI piping—affects ALL env vars.
 const cleanEnv = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
 
-export type SubAgentId = "github" | "slack" | "notion";
+export type SubAgentId = "github" | "slack";
 
 export interface SubAgentResult {
   agentId: SubAgentId;
@@ -74,18 +73,6 @@ Execution rules:
 3. Confirm channel IDs before posting in channels you are not certain about
 4. Return a concise factual summary of what was accomplished`;
 
-const NOTION_SYSTEM_PROMPT = `You are the Notion Agent — a specialized AI delegate with access ONLY to Notion operations.
-
-Your delegated scope: searching pages, creating pages, appending content, and archiving pages.
-You cannot access GitHub or Slack. You operate with least-privilege.
-
-Execution rules:
-1. Always search_notion_pages first to find the correct parent page IDs before creating or modifying
-2. append_notion_blocks adds content to existing pages — use it for updates rather than creating duplicates
-3. archive_notion_page is RED zone — it soft-deletes the page and requires step-up authorization via CIBA push notification
-4. Include concrete, specific page_id values from search results — never guess IDs
-5. Return a concise factual summary of what was accomplished`;
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyTool = any;
 
@@ -106,18 +93,12 @@ const AGENT_CONFIGS: Record<SubAgentId, AgentConfig> = {
     systemPrompt: SLACK_SYSTEM_PROMPT,
     name: "Slack Agent",
   },
-  notion: {
-    tools: notionTools,
-    systemPrompt: NOTION_SYSTEM_PROMPT,
-    name: "Notion Agent",
-  },
 };
 
 // Export combined tool list for reference
 export const allTools = [
   ...githubTools,
   ...slackTools,
-  ...notionTools,
 ];
 
 const MAX_STEPS = 4;

@@ -11,7 +11,6 @@ import {
   Zap,
   GitBranch,
   MessageSquare,
-  BookOpen,
   Sparkles,
   ArrowRight,
   RotateCcw,
@@ -24,7 +23,6 @@ const SUGGESTIONS = [
   "List open issues on my GitHub repo",
   "Post a sprint update to #general on Slack",
   "Create a GitHub issue for the login bug",
-  "Search my Notion pages for meeting notes",
 ];
 
 const AGENTS = [
@@ -41,13 +39,6 @@ const AGENTS = [
     icon: MessageSquare,
     pill: "border-emerald-500/20 bg-emerald-500/8 text-emerald-300",
     dot: "bg-emerald-400",
-  },
-  {
-    id: "notion",
-    label: "Notion",
-    icon: BookOpen,
-    pill: "border-amber-500/20 bg-amber-500/8 text-amber-300",
-    dot: "bg-amber-400",
   },
 ];
 
@@ -174,7 +165,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight gradient-text">Command Center</h1>
           <p className="mt-1 text-sm text-white/35">
-            Orchestrate your GitHub, Slack &amp; Notion agents with natural language
+            Orchestrate your GitHub &amp; Slack agents with natural language
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -193,7 +184,7 @@ export default function DashboardPage() {
           )}
           <div className="flex items-center gap-1.5 rounded-full border border-white/6 bg-white/2 px-3 py-1.5 text-xs text-white/40">
             <Bot className="h-3.5 w-3.5 text-cyan-400" />
-            <span className="font-bold text-white">3</span>&nbsp;agents
+            <span className="font-bold text-white">2</span>&nbsp;agents
           </div>
         </div>
       </div>

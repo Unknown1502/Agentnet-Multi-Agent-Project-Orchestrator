@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import {
   GitBranch,
   MessageSquare,
-  BookOpen,
   Shield,
   AlertTriangle,
   CheckCircle,
@@ -27,19 +26,16 @@ interface AgentActivityFeedProps {
 const AGENT_ICONS: Record<string, React.ReactNode> = {
   github: <GitBranch className="h-4 w-4" />,
   slack: <MessageSquare className="h-4 w-4" />,
-  notion: <BookOpen className="h-4 w-4" />,
 };
 
 const AGENT_COLORS: Record<string, string> = {
   github: "text-purple-400 border-purple-800 bg-purple-950/40",
   slack: "text-green-400 border-green-800 bg-green-950/40",
-  notion: "text-orange-400 border-orange-800 bg-orange-950/40",
 };
 
 const AGENT_LABELS: Record<string, string> = {
   github: "GitHub Agent",
   slack: "Slack Agent",
-  notion: "Notion Agent",
 };
 
 // Sub-agent events are indented under their agent header

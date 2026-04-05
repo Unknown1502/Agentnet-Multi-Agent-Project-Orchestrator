@@ -39,7 +39,6 @@ const ORCHESTRATOR_SYSTEM_PROMPT = `You are the AgentNet Orchestrator — a mast
 Available agents and their capabilities:
 - "github": GitHub operations — list/create issues, list/detail PRs, comment on PRs, merge PRs
 - "slack": Slack operations — list channels, post messages, create channels, archive channels
-- "notion": Notion operations — search pages, create pages, append content to pages, archive pages
 
 Your ONLY job is to call the delegate_tasks tool with a precise plan.
 Do NOT try to perform any operations directly. Always use delegate_tasks.
@@ -49,8 +48,7 @@ Rules:
 2. Only include agents that are actually needed for the request
 3. Instructions must be self-contained — include all context the sub-agent needs
 4. If the user asks about a specific repo, include "owner/repo" in the GitHub instruction
-5. Be precise: "post a message to #engineering saying Sprint 12 completed" not "post something to Slack"
-6. For Notion: when creating or appending, instruct the agent to search for the parent page first`;
+5. Be precise: "post a message to #engineering saying Sprint 12 completed" not "post something to Slack"`;
 
 const delegateTasksTool = tool(
   async (_args: { tasks: Array<{ agentId: SubAgentId; instruction: string }> }) => {
@@ -63,7 +61,7 @@ const delegateTasksTool = tool(
     schema: z.object({
       tasks: z.array(
         z.object({
-          agentId: z.enum(["github", "slack", "notion"]).describe("Which specialized agent to use"),
+          agentId: z.enum(["github", "slack"]).describe("Which specialized agent to use"),
           instruction: z.string().describe("Precise, self-contained instruction for the agent"),
         })
       ).min(1).describe("List of tasks for specialized agents"),

@@ -24,14 +24,6 @@ const CONNECTIONS = [
     scopes: ["chat:write", "channels:read", "channels:manage", "users:read"],
     icon: "slack",
   },
-  {
-    id: "notion",
-    name: "Notion",
-    provider: "notion",
-    description: "Search, create, and manage Notion pages",
-    scopes: [],
-    icon: "notion",
-  },
 ];
 
 const CACHE_TTL = 30; // seconds

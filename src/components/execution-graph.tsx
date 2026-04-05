@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { GitBranch, MessageSquare, BookOpen, Network, CheckCircle, XCircle, Loader2, Shield, AlertTriangle, Zap } from "lucide-react";
+import { GitBranch, MessageSquare, Network, CheckCircle, XCircle, Loader2, Shield, AlertTriangle, Zap } from "lucide-react";
 import type { AgentEvent } from "@/lib/agent/state";
 
 interface ExecutionGraphProps {
@@ -47,19 +47,6 @@ const AGENT_DEFS = {
     labelError: "text-red-300",
     dotColor: "bg-emerald-400",
     toolBg: "border-emerald-500/20 bg-emerald-500/8 text-emerald-300/70",
-  },
-  notion: {
-    label: "Notion",
-    icon: <BookOpen className="h-6 w-6" />,
-    activeColor: "border-amber-400/70 bg-amber-500/15 shadow-amber-500/40",
-    successColor: "border-emerald-400/60 bg-emerald-500/10 shadow-emerald-500/30",
-    errorColor: "border-red-400/50 bg-red-500/8",
-    idleColor: "border-white/10 bg-white/3",
-    labelActive: "text-amber-300",
-    labelSuccess: "text-emerald-300",
-    labelError: "text-red-300",
-    dotColor: "bg-amber-400",
-    toolBg: "border-amber-500/20 bg-amber-500/8 text-amber-300/70",
   },
 };
 
@@ -276,7 +263,6 @@ export function ExecutionGraph({ events, isLoading }: ExecutionGraphProps) {
     const agentMap: Record<string, AgentNode> = {
       github: { id: "github", label: "GitHub", icon: <GitBranch className="h-6 w-6" />, status: "idle", tools: [] },
       slack:  { id: "slack",  label: "Slack",  icon: <MessageSquare className="h-6 w-6" />, status: "idle", tools: [] },
-      notion: { id: "notion", label: "Notion", icon: <BookOpen className="h-6 w-6" />, status: "idle", tools: [] },
     };
 
     let orchStatus: NodeStatus = "idle";
@@ -359,7 +345,7 @@ export function ExecutionGraph({ events, isLoading }: ExecutionGraphProps) {
 
         {/* Connections + Agents column */}
         <div className="flex flex-col gap-6">
-          {(["github", "slack", "notion"] as const).map((id) => {
+          {(["github", "slack"] as const).map((id) => {
             const node = agents[id];
             const def = AGENT_DEFS[id];
             const isActive = node.status === "active";

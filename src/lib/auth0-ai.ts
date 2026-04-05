@@ -45,19 +45,6 @@ export const withSlackAccess = auth0AI.withTokenVault({
   },
 });
 
-export const withNotionAccess = auth0AI.withTokenVault({
-  connection: "notion",
-  scopes: [],
-  accessToken: async (_args: unknown, config: Record<string, unknown>) => {
-    const configurable = config?.configurable as Record<string, unknown> | undefined;
-    const userId = configurable?.user_id as string | undefined;
-    const token = await getFederatedAccessToken(userId, "notion");
-    return token
-      ? { access_token: token, id_token: "", expires_in: 86400, scope: "" }
-      : undefined;
-  },
-});
-
 export const withStepUpAuth = auth0AI.withAsyncAuthorization({
   scopes: ["openid"],
   userID: async (_args: unknown, config: Record<string, unknown>): Promise<string> => {
