@@ -66,10 +66,17 @@ function ConnectionsContent() {
     }
 
     if (justConnected) {
-      // Load initial state, then call PUT to verify + mark + link the connection
+      // Load initial state, then call PUT to verify + mark + link the connection.
+      // Pass the one-time linking token (lt) so PUT knows who the primary user was
+      // before the OAuth flow replaced the session with a new sub.
+      const lt = searchParams.get("lt");
       fetchConnections().then(async () => {
         try {
-          const putRes = await fetch(`/api/connections/${justConnected}`, { method: "PUT" });
+          const putRes = await fetch(`/api/connections/${justConnected}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ lt }),
+          });
           const putData = putRes.ok ? await putRes.json().catch(() => ({})) : {};
 
           if (putData.needsRelogin && putData.reloginUrl) {
