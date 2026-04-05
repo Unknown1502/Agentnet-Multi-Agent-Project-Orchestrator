@@ -44,11 +44,12 @@ export async function POST(
   // obtaining a social refresh token. Token Vault then exchanges this via
   // the federated token exchange grant to get provider access tokens.
   const returnTo = `/dashboard/connections?connected=${provider}`;
-  // Use /auth/connect (enabled via enableConnectAccountEndpoint: true) instead of /auth/login.
-  // /auth/login starts a fresh login flow and overwrites the existing state cookie, which
-  // causes "The state parameter is invalid" on the callback. /auth/connect is designed
-  // specifically for adding a social connection to an already-authenticated session.
-  const connectUrl = `/auth/connect?connection=${encodeURIComponent(connection)}&returnTo=${encodeURIComponent(returnTo)}`;
+  // /auth/login with a specific connection initiates a fresh OAuth flow through the social
+  // provider, so Auth0 can capture the provider refresh token and store it in Token Vault.
+  // The "state parameter is invalid" error we saw before was caused by CRLF in AUTH0_SECRET
+  // corrupting cookie encryption — now fixed. /auth/connect is Auth0 Connected Accounts
+  // (linked Auth0 accounts) and is NOT the correct endpoint for Token Vault social connections.
+  const connectUrl = `/auth/login?connection=${encodeURIComponent(connection)}&returnTo=${encodeURIComponent(returnTo)}`;
 
   return NextResponse.json({ connectUrl });
 }
