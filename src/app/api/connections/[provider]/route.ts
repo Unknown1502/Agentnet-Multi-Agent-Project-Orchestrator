@@ -92,6 +92,19 @@ export async function PUT(
 
       if (primarySub && primarySub !== userId) {
         console.log(`[AccountLink] Linking ${userId} → primary ${primarySub}`);
+
+        // Write the marker under the PRIMARY sub FIRST so it persists after relogin.
+        // After linking, the user is redirected to re-login as primarySub — at that
+        // point only keys under primarySub are visible, not the current social sub.
+        if (isRedisConfigured()) {
+          try {
+            await redis.set(`conn-manual:${primarySub}:${connection}`, "1", { ex });
+            await redis.del(`conn-status:${primarySub}`);
+          } catch {
+            // non-fatal
+          }
+        }
+
         const result = await linkIdentityToPrimary(primarySub, userId);
 
         if (result.success && !result.alreadyLinked) {
