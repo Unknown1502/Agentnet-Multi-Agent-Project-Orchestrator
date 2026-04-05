@@ -57,13 +57,38 @@ function ConnectionsContent() {
     }
 
     const justConnected = searchParams.get("connected");
+    const justLinked = searchParams.get("linked");
+
+    if (justLinked) {
+      // Returned from re-login after account linking — all providers now under one sub
+      fetchConnections(true);
+      return;
+    }
+
     if (justConnected) {
-      // Load initial state, then mark the connection and re-fetch
+      // Load initial state, then call PUT to verify + mark + link the connection
       fetchConnections().then(async () => {
         try {
-          await fetch(`/api/connections/${justConnected}`, { method: "PUT" });
+          const putRes = await fetch(`/api/connections/${justConnected}`, { method: "PUT" });
+          const putData = putRes.ok ? await putRes.json().catch(() => ({})) : {};
+
+          if (putData.vaultError) {
+            // Token Vault exchange failed — show actionable error
+            setConnectError(putData.error || "Token Vault exchange failed. Check Auth0 app configuration.");
+            await fetchConnections(true);
+            return;
+          }
+
+          if (putData.needsRelogin && putData.reloginUrl) {
+            // Account linking succeeded — must re-login to get primary-sub session
+            // Brief pause so the user sees the connections page before redirect
+            setTimeout(() => {
+              window.location.href = putData.reloginUrl;
+            }, 800);
+            return;
+          }
         } catch {
-          // non-fatal — UI will still show connected after bust re-fetch
+          // non-fatal — UI will still show updated state after bust re-fetch
         }
         await fetchConnections(true);
       });

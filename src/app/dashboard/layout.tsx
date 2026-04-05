@@ -1,12 +1,33 @@
 export const dynamic = "force-dynamic";
 
 import { NavSidebar } from "@/components/nav-sidebar";
+import { auth0 } from "@/lib/auth0";
+import { getRedis, isRedisConfigured } from "@/lib/db";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Store the FIRST sub we ever see for this email as the "primary sub".
+  // When the user later connects a social provider (github|xxx, slack|yyy),
+  // the PUT handler links those identities back to this primary sub so that
+  // Token Vault credentials work under a single unified user in Auth0.
+  // Uses Redis NX so only the first sub ever seen is stored.
+  try {
+    const session = await auth0.getSession();
+    if (session && isRedisConfigured()) {
+      const email = (session.user.email as string | undefined)?.toLowerCase();
+      const sub = session.user.sub as string | undefined;
+      if (email && sub) {
+        const redis = await getRedis();
+        await redis.set(`primary-sub:${email}`, sub, { ex: 90 * 24 * 3600, nx: true });
+      }
+    }
+  } catch {
+    // Never block the layout render for Redis failures
+  }
+
   return (
     <div className="relative flex h-screen overflow-hidden bg-[#04050d]">
       {/* Animated ambient orbs */}
