@@ -128,7 +128,15 @@ function ConnectionsContent() {
     <div className="space-y-6">
       {connectError && (
         <div className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-3 text-sm text-red-400">
-          {connectError}
+          <div className="whitespace-pre-wrap">{connectError}</div>
+          {connectError.includes("invalid_state") && (
+            <button
+              onClick={() => { setConnectError(null); window.history.replaceState({}, "", "/dashboard/connections"); }}
+              className="mt-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/20 transition-colors"
+            >
+              Dismiss and try again
+            </button>
+          )}
         </div>
       )}
 
