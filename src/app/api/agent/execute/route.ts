@@ -3,6 +3,7 @@ import { auth0 } from "@/lib/auth0";
 import { runOrchestratedAgents } from "@/lib/agent/graph";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 300; // 5 min — required for multi-agent LLM chains on Vercel Pro
 import type { AgentEvent } from "@/lib/agent/state";
 import { getTrustZoneForTool } from "@/lib/trust-policy";
 import { logAuditEvent } from "@/lib/db";

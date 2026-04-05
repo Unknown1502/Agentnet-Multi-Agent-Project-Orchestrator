@@ -101,12 +101,19 @@ export default function DashboardPage() {
           }
         }
       }
-    } catch {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Connection lost";
+      // If we already have events, the stream was cut mid-flight (Vercel timeout).
+      // Surface a clear message rather than generic "connection error".
       setEvents((prev) => [
         ...prev,
         {
           type: "error",
-          data: { message: "Failed to connect to the agent" },
+          data: {
+            message: prev.length > 0
+              ? `Stream interrupted: ${msg}. If this keeps happening, the agent request may be taking too long.`
+              : `Could not reach the agent server. Check your connection.`,
+          },
           timestamp: new Date().toISOString(),
         },
       ]);
@@ -254,4 +261,4 @@ export default function DashboardPage() {
     </div>
   );
 }
-
+
