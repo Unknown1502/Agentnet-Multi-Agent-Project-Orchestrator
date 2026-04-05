@@ -11,37 +11,6 @@ const PROVIDER_MAP: Record<string, string> = {
   notion: "notion",
 };
 
-// Probe the Token Vault exchange to verify the connection actually works end-to-end.
-// Called in PUT so we catch misconfigured Auth0 apps before writing "Connected" markers.
-async function probeTokenVault(connection: string, refreshToken: string | undefined): Promise<boolean> {
-  if (!refreshToken) return false;
-  const clean = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
-  const domain = clean(process.env.AUTH0_DOMAIN);
-  const clientId = clean(process.env.AUTH0_CLIENT_ID);
-  const clientSecret = clean(process.env.AUTH0_CLIENT_SECRET);
-  if (!domain || !clientId || !clientSecret) return false;
-  try {
-    const res = await fetch(`https://${domain}/oauth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token",
-        client_id: clientId,
-        client_secret: clientSecret,
-        subject_token_type: "urn:ietf:params:oauth:token-type:refresh_token",
-        subject_token: refreshToken,
-        connection,
-      }),
-    });
-    const body = await res.json().catch(() => ({}));
-    console.log(`[TokenVault PUT probe] ${connection} → ${res.status}:`, JSON.stringify(body).slice(0, 200));
-    return res.ok;
-  } catch (e) {
-    console.warn(`[TokenVault PUT probe] ${connection} error:`, e);
-    return false;
-  }
-}
-
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
@@ -95,12 +64,10 @@ export async function PUT(
 
   const userId = session.user.sub as string;
   const userEmail = (session.user.email as string | undefined)?.toLowerCase();
-  const sessionV4 = session as { tokenSet?: { refreshToken?: string } } & Record<string, unknown>;
-  const refreshToken = (sessionV4.tokenSet?.refreshToken as string | undefined) || undefined;
 
   // ── Step 1: Persist connection markers (by sub AND by email).
-  // Always write FIRST regardless of Token Vault probe result — the OAuth did succeed
-  // and the UI must show "Connected". Vault configuration issues are advisory.
+  // Always write regardless of anything else — the OAuth did succeed
+  // and the UI must show "Connected".
   const ex = 7 * 24 * 3600;
   if (isRedisConfigured()) {
     try {
@@ -117,27 +84,7 @@ export async function PUT(
     }
   }
 
-  // ── Step 2: Probe Token Vault to warn if agent won't work yet.
-  // The probe is ADVISORY — it tells the user what to fix in Auth0 Dashboard.
-  // It does NOT block the connected state or the account linking step.
-  const vaultWorking = await probeTokenVault(connection, refreshToken);
-  if (!vaultWorking) {
-    console.warn(`[PUT ${provider}] Token Vault probe failed. refreshToken present: ${!!refreshToken}. Connection IS marked.`);
-    return NextResponse.json({
-      ok: true,
-      vaultWarning: true,
-      error:
-        `${provider.charAt(0).toUpperCase() + provider.slice(1)} connected via OAuth, but the Token Vault exchange ` +
-        `isn't configured yet — the agent will prompt you to re-connect until fixed.\n\n` +
-        `Fix in Auth0 Dashboard:\n` +
-        `1. Applications → [Your App] → Settings → Advanced → Grant Types → enable "Token Exchange"\n` +
-        `2. Authentication → Social → ${provider} → Purpose = "Authentication and Connected Accounts for Token Vault"\n` +
-        `3. For Notion: ensure the redirect URI in your Notion OAuth app is exactly:\n` +
-        `   https://<your-tenant>.us.auth0.com/login/callback`,
-    });
-  }
-
-  // ── Step 3: Account linking — link this social identity to the primary Auth0 user.
+  // ── Step 2: Account linking — link this social identity to the primary Auth0 user.
   if (isRedisConfigured() && userEmail) {
     try {
       const redis = await getRedis();

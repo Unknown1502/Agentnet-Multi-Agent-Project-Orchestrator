@@ -1,13 +1,13 @@
-import { Auth0AI } from "@auth0/ai-langchain";
+﻿import { Auth0AI } from "@auth0/ai-langchain";
 import { MemoryStore } from "@auth0/ai/stores";
+import { getFederatedAccessToken } from "./federated-tokens";
 
 const store = new MemoryStore();
 
-// IMPORTANT: client_id in the Token Vault exchange MUST match the client that
-// issued the user's refresh token. Since the user logs in via the Regular Web App,
-// we use AUTH0_CLIENT_ID / AUTH0_CLIENT_SECRET here — NOT the separate M2M app.
-// The Token Vault grant type must be enabled on this application in Auth0 Dashboard:
-// Applications → AgentNet → Advanced Settings → Grant Types → Token Exchange.
+// We bypass Auth0 Token Vault (paid feature) by supplying accessToken directly.
+// The withTokenVault({ accessToken }) path skips the Token Exchange grant and
+// instead calls our function to retrieve the provider token from the Management API.
+// Requirement: M2M client needs read:users + read:user_idp_tokens permissions.
 const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
 
 const auth0AI = new Auth0AI({
@@ -22,32 +22,39 @@ const auth0AI = new Auth0AI({
 export const withGitHubAccess = auth0AI.withTokenVault({
   connection: "github",
   scopes: ["repo", "read:org", "read:user"],
-  refreshToken: async (_args: unknown, config: Record<string, unknown>) => {
+  accessToken: async (_args: unknown, config: Record<string, unknown>) => {
     const configurable = config?.configurable as Record<string, unknown> | undefined;
-    const token = configurable?.refresh_token as string | undefined;
-    // Return undefined (not empty string) when absent \u2014 the library needs undefined to
-    // throw a proper GraphInterrupt rather than attempting an exchange with an empty token.
-    return token || undefined;
+    const userId = configurable?.user_id as string | undefined;
+    const token = await getFederatedAccessToken(userId, "github");
+    return token
+      ? { access_token: token, id_token: "", expires_in: 86400, scope: "repo read:org read:user" }
+      : undefined;
   },
 });
 
 export const withSlackAccess = auth0AI.withTokenVault({
   connection: "sign-in-with-slack",
   scopes: ["chat:write", "channels:read", "channels:manage", "users:read"],
-  refreshToken: async (_args: unknown, config: Record<string, unknown>) => {
+  accessToken: async (_args: unknown, config: Record<string, unknown>) => {
     const configurable = config?.configurable as Record<string, unknown> | undefined;
-    const token = configurable?.refresh_token as string | undefined;
-    return token || undefined;
+    const userId = configurable?.user_id as string | undefined;
+    const token = await getFederatedAccessToken(userId, "sign-in-with-slack");
+    return token
+      ? { access_token: token, id_token: "", expires_in: 86400, scope: "chat:write channels:read channels:manage users:read" }
+      : undefined;
   },
 });
 
 export const withNotionAccess = auth0AI.withTokenVault({
   connection: "notion",
   scopes: [],
-  refreshToken: async (_args: unknown, config: Record<string, unknown>) => {
+  accessToken: async (_args: unknown, config: Record<string, unknown>) => {
     const configurable = config?.configurable as Record<string, unknown> | undefined;
-    const token = configurable?.refresh_token as string | undefined;
-    return token || undefined;
+    const userId = configurable?.user_id as string | undefined;
+    const token = await getFederatedAccessToken(userId, "notion");
+    return token
+      ? { access_token: token, id_token: "", expires_in: 86400, scope: "" }
+      : undefined;
   },
 });
 
