@@ -13,6 +13,14 @@ const PROVIDER_MAP: Record<string, string> = {
   slack: "sign-in-with-slack",
 };
 
+// Scopes to request from each provider during OAuth (connection_scope).
+// Without this, Auth0 only requests the minimal configured scopes and the
+// stored token won't have the permissions tools need (e.g. `repo` for GitHub).
+const CONNECTION_SCOPE_MAP: Record<string, string> = {
+  github: "repo,read:org,read:user",
+  "sign-in-with-slack": "chat:write,channels:read,channels:manage,users:read",
+};
+
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
@@ -52,7 +60,13 @@ export async function POST(
   const returnTo = linkingToken
     ? `/dashboard/connections?connected=${provider}&lt=${linkingToken}`
     : `/dashboard/connections?connected=${provider}`;
-  const connectUrl = `/auth/login?connection=${encodeURIComponent(connection)}&returnTo=${encodeURIComponent(returnTo)}`;
+
+  // Build the connect URL — include connection_scope so the OAuth token gets the
+  // right GitHub/Slack permissions (e.g. `repo` scope for GitHub API access).
+  const connectionScope = CONNECTION_SCOPE_MAP[connection];
+  const connectParams = new URLSearchParams({ connection, returnTo });
+  if (connectionScope) connectParams.set("connection_scope", connectionScope);
+  const connectUrl = `/auth/login?${connectParams}`;
 
   return NextResponse.json({ connectUrl });
 }

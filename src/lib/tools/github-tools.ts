@@ -285,28 +285,53 @@ export const listUserRepos = withGitHubAccess(
   tool(
     async ({ sort, limit }: { sort?: string; limit?: number }) => {
       const accessToken = getAccessTokenFromTokenVault();
+      const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github.v3+json",
+      };
+
+      // Step 1: Always resolve the authenticated GitHub login via GET /user.
+      // This works with ANY scope including the minimal `read:user`.
+      let login: string | undefined;
+      const userRes = await fetch("https://api.github.com/user", { headers });
+      if (userRes.ok) {
+        const userData = await userRes.json() as Record<string, unknown>;
+        login = userData.login as string | undefined;
+      }
+
+      // Step 2: Try the full authenticated-user repos endpoint first.
+      // Requires `repo` or `public_repo` scope — returns private repos if scope allows.
       const params = new URLSearchParams({
         sort: sort || "pushed",
         per_page: String(limit || 10),
         affiliation: "owner",
       });
-      const response = await fetch(
-        `https://api.github.com/user/repos?${params}`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: "application/vnd.github.v3+json",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+      const reposRes = await fetch(`https://api.github.com/user/repos?${params}`, { headers });
+      let repos: Array<Record<string, unknown>> = [];
+      if (reposRes.ok) {
+        repos = await reposRes.json() as Array<Record<string, unknown>>;
       }
 
-      const repos = await response.json();
-      return JSON.stringify(
-        (repos as Array<Record<string, unknown>>).map((r) => ({
+      // Step 3: If empty (likely missing `repo` scope), fall back to public profile repos.
+      // GET /users/{login}/repos requires NO special scope and always returns public repos.
+      if (repos.length === 0 && login) {
+        const pubParams = new URLSearchParams({ type: "owner", sort: sort || "pushed", per_page: String(limit || 10) });
+        const pubRes = await fetch(`https://api.github.com/users/${login}/repos?${pubParams}`, { headers });
+        if (pubRes.ok) {
+          repos = await pubRes.json() as Array<Record<string, unknown>>;
+        }
+      }
+
+      if (repos.length === 0) {
+        return JSON.stringify({
+          github_login: login ?? "unknown",
+          error: "No repositories found. The GitHub token may have insufficient scope. Ask the user to re-connect GitHub from the Connections page, or ask them to provide the exact owner/repo (e.g. 'prajwal/myapp').",
+        });
+      }
+
+      return JSON.stringify({
+        github_login: login,
+        repositories: repos.map((r) => ({
           owner: (r.owner as Record<string, unknown>)?.login,
           repo: r.name,
           full_name: r.full_name,
@@ -314,8 +339,8 @@ export const listUserRepos = withGitHubAccess(
           private: r.private,
           pushed_at: r.pushed_at,
           open_issues_count: r.open_issues_count,
-        }))
-      );
+        })),
+      });
     },
     {
       name: "list_user_repos",
