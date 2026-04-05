@@ -43,9 +43,9 @@ function SignalLine({
         <motion.div
           className="absolute top-1/2 -translate-y-1/2 rounded-full"
           style={{
-            width: 7, height: 7,
+            width: 10, height: 10,
             background: color,
-            boxShadow: `0 0 8px ${color}, 0 0 18px ${color}55`,
+            boxShadow: `0 0 12px ${color}, 0 0 24px ${color}55`,
           }}
           animate={{ left: reverse ? ["calc(100% + 4px)", "-4px"] : ["-4px", "calc(100% + 4px)"] }}
           transition={{ duration: 1.1, repeat: Infinity, ease: "linear", repeatDelay: 0.35 }}
@@ -86,7 +86,7 @@ function AgentNode({
     <div className="flex flex-col items-center gap-3">
       {/* Node box */}
       <motion.div
-        className="relative flex h-22 w-22 items-center justify-center rounded-[20px] border transition-all duration-500"
+        className="relative flex h-32 w-32 items-center justify-center rounded-[28px] border transition-all duration-500"
         style={{ background: nodeBg, borderColor: nodeBorder, boxShadow: nodeGlow }}
         animate={isActive ? { scale: [1, 1.04, 1] } : { scale: 1 }}
         transition={{ duration: 2.2, repeat: isActive ? Infinity : 0, ease: "easeInOut" }}
@@ -94,9 +94,9 @@ function AgentNode({
         {/* Pulse ring */}
         {isActive && (
           <motion.div
-            className="absolute -inset-px rounded-[20px] border"
+            className="absolute -inset-px rounded-[28px] border"
             style={{ borderColor: border }}
-            animate={{ scale: [1, 1.28], opacity: [0.55, 0] }}
+            animate={{ scale: [1, 1.25], opacity: [0.55, 0] }}
             transition={{ duration: 1.9, repeat: Infinity, ease: "easeOut" }}
           />
         )}
@@ -110,22 +110,22 @@ function AgentNode({
         <div className="absolute -top-2 -right-2">
           {isActive && (
             <motion.div
-              className="h-3.75 w-3.75 rounded-full border-2 border-[#020309]"
-              style={{ background: color, boxShadow: `0 0 7px ${color}` }}
+              className="h-5 w-5 rounded-full border-2 border-[#020309]"
+              style={{ background: color, boxShadow: `0 0 9px ${color}` }}
               animate={{ scale: [1, 1.35, 1] }}
               transition={{ duration: 0.75, repeat: Infinity }}
             />
           )}
-          {isSuccess     && <CheckCircle  className="h-3.75 w-3.75 text-[#00E57A] drop-shadow" />}
-          {status === "error"       && <XCircle      className="h-3.75 w-3.75 text-[#FF3D5A] drop-shadow" />}
-          {status === "interrupted" && <Shield       className="h-3.75 w-3.75 text-[#F5C510] drop-shadow" />}
+          {isSuccess     && <CheckCircle  className="h-5 w-5 text-[#00E57A] drop-shadow" />}
+          {status === "error"       && <XCircle      className="h-5 w-5 text-[#FF3D5A] drop-shadow" />}
+          {status === "interrupted" && <Shield       className="h-5 w-5 text-[#F5C510] drop-shadow" />}
         </div>
       </motion.div>
 
       {/* Label row */}
       <div className="flex flex-col items-center gap-1.5">
         <span
-          className="text-[11px] font-bold uppercase tracking-[0.16em] transition-colors duration-300"
+          className="text-[13px] font-bold uppercase tracking-[0.18em] transition-colors duration-300"
           style={{ color: labelColor }}
         >
           {label}
@@ -138,7 +138,7 @@ function AgentNode({
               initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 3 }}
-              className="max-w-28 truncate rounded-full border px-2.5 py-0.5 text-[10px] font-medium"
+              className="max-w-36 truncate rounded-full border px-3 py-0.5 text-[11px] font-medium"
               style={{ borderColor: `${color}28`, background: `${color}0d`, color: `${color}bb` }}
             >
               {lastTool.replace(/_/g, " ")}
@@ -146,8 +146,8 @@ function AgentNode({
           )}
           {isSuccess && (
             <motion.div key="done" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              className="flex items-center gap-1 text-[10px]" style={{ color: `${TRUST.GREEN}88` }}>
-              <Zap className="h-2.5 w-2.5" />
+              className="flex items-center gap-1 text-[11px]" style={{ color: `${TRUST.GREEN}88` }}>
+              <Zap className="h-3 w-3" />
               Done
             </motion.div>
           )}
@@ -166,7 +166,7 @@ function OrchestratorNode({ status, isLoading }: { status: NodeStatus; isLoading
     <div className="flex flex-col items-center gap-3">
       {/* Node box � slightly larger */}
       <motion.div
-        className="relative flex h-26 w-26 items-center justify-center rounded-[22px] border transition-all duration-500"
+        className="relative flex h-36 w-36 items-center justify-center rounded-[30px] border transition-all duration-500"
         style={{
           background:   isActive ? ORC.bg : isSuccess ? "rgba(0,229,122,0.06)" : "rgba(255,255,255,0.02)",
           borderColor:  isActive ? ORC.border : isSuccess ? "rgba(0,229,122,0.28)" : "rgba(255,255,255,0.08)",
@@ -179,12 +179,12 @@ function OrchestratorNode({ status, isLoading }: { status: NodeStatus; isLoading
         {isActive && (
           <>
             <motion.div
-              className="absolute -inset-px rounded-[22px] border border-[#00D9FF]/25"
+              className="absolute -inset-px rounded-[30px] border border-[#00D9FF]/25"
               animate={{ scale: [1, 1.22], opacity: [0.5, 0] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
             />
             <motion.div
-              className="absolute -inset-px rounded-[22px] border border-[#00D9FF]/12"
+              className="absolute -inset-px rounded-[30px] border border-[#00D9FF]/12"
               animate={{ scale: [1, 1.4], opacity: [0.35, 0] }}
               transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut", delay: 0.6 }}
             />
@@ -192,27 +192,27 @@ function OrchestratorNode({ status, isLoading }: { status: NodeStatus; isLoading
         )}
 
         <Network
-          className="h-9 w-9 relative z-10 transition-colors duration-300"
+          className="h-12 w-12 relative z-10 transition-colors duration-300"
           style={{ color: isActive ? ORC.color : isSuccess ? TRUST.GREEN : "rgba(255,255,255,0.18)" }}
         />
 
         {/* Status dot */}
         {isActive && (
           <motion.div
-            className="absolute -top-2 -right-2 h-3.75 w-3.75 rounded-full border-2 border-[#020309] bg-[#00D9FF]"
-            style={{ boxShadow: "0 0 8px #00D9FF" }}
+            className="absolute -top-2.5 -right-2.5 h-5 w-5 rounded-full border-2 border-[#020309] bg-[#00D9FF]"
+            style={{ boxShadow: "0 0 10px #00D9FF" }}
             animate={{ scale: [1, 1.4, 1] }}
             transition={{ duration: 0.85, repeat: Infinity }}
           />
         )}
         {isSuccess && (
-          <div className="absolute -top-2 -right-2 h-3.75 w-3.75 rounded-full border-2 border-[#020309] bg-[#00E57A]" />
+          <div className="absolute -top-2.5 -right-2.5 h-5 w-5 rounded-full border-2 border-[#020309] bg-[#00E57A]" />
         )}
 
         {/* Spinner */}
         {isLoading && (
           <div className="absolute bottom-2 right-2">
-            <Loader2 className="h-3 w-3 animate-spin" style={{ color: `${ORC.color}80` }} />
+            <Loader2 className="h-4 w-4 animate-spin" style={{ color: `${ORC.color}80` }} />
           </div>
         )}
       </motion.div>
@@ -220,14 +220,14 @@ function OrchestratorNode({ status, isLoading }: { status: NodeStatus; isLoading
       {/* Label */}
       <div className="flex flex-col items-center gap-1.5">
         <span
-          className="text-[11px] font-bold uppercase tracking-[0.16em] transition-colors duration-300"
+          className="text-[13px] font-bold uppercase tracking-[0.18em] transition-colors duration-300"
           style={{ color: isActive ? ORC.color : isSuccess ? TRUST.GREEN : "rgba(255,255,255,0.28)" }}
         >
           Orchestrator
         </span>
         {isActive && (
           <motion.span
-            className="text-[10px]"
+            className="text-[12px]"
             style={{ color: `${ORC.color}60` }}
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 1.6, repeat: Infinity }}
@@ -257,22 +257,22 @@ function TrustBand({ events }: { events: AgentEvent[] }) {
       animate={{ opacity: 1, y: 0 }}
       className="flex items-center gap-2.5 justify-center pt-1"
     >
-      <Shield className="h-3 w-3 shrink-0" style={{ color: "rgba(255,255,255,0.18)" }} />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.18)" }}>
+      <Shield className="h-4 w-4 shrink-0" style={{ color: "rgba(255,255,255,0.18)" }} />
+      <span className="text-[11px] font-semibold uppercase tracking-[0.15em]" style={{ color: "rgba(255,255,255,0.18)" }}>
         Trust
       </span>
       {(["GREEN", "YELLOW", "RED"] as const).map((zone) =>
         counts[zone] > 0 ? (
           <span
             key={zone}
-            className="flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-semibold"
+            className="flex items-center gap-1 rounded-full border px-3 py-0.5 text-[11px] font-semibold"
             style={{
               color: TRUST[zone],
               borderColor: `${TRUST[zone]}28`,
               background: `${TRUST[zone]}0c`,
             }}
           >
-            {zone === "RED" && <AlertTriangle className="h-2.5 w-2.5" />}
+            {zone === "RED" && <AlertTriangle className="h-3 w-3" />}
             {counts[zone]}� {zone}
           </span>
         ) : null
@@ -340,13 +340,13 @@ export function ExecutionGraph({ events, isLoading }: { events: AgentEvent[]; is
   const hasTrust = events.some((e) => e.type === "sub_agent_trust_event");
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-5">
+    <div className="flex w-full max-w-4xl flex-col gap-7">
       {/* Graph row */}
       <div className="relative flex items-center gap-0">
         {/* Background radial glow when live */}
         {orchActive && (
           <motion.div
-            className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-50"
+            className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 h-72"
             style={{ background: "radial-gradient(ellipse at center, rgba(0,217,255,0.045) 0%, transparent 65%)" }}
             animate={{ opacity: [0.4, 0.9, 0.4] }}
             transition={{ duration: 3.5, repeat: Infinity }}
@@ -356,7 +356,7 @@ export function ExecutionGraph({ events, isLoading }: { events: AgentEvent[]; is
         {/* GitHub */}
         <AgentNode
           label="GitHub"
-          icon={<GitBranch className="h-6.5 w-6.5" />}
+          icon={<GitBranch className="h-10 w-10" />}
           status={gh.status}
           lastTool={gh.lastTool}
           color={GH.color} bg={GH.bg} border={GH.border}
@@ -384,7 +384,7 @@ export function ExecutionGraph({ events, isLoading }: { events: AgentEvent[]; is
         {/* Slack */}
         <AgentNode
           label="Slack"
-          icon={<MessageSquare className="h-6.5 w-6.5" />}
+          icon={<MessageSquare className="h-10 w-10" />}
           status={sl.status}
           lastTool={sl.lastTool}
           color={SL.color} bg={SL.bg} border={SL.border}
