@@ -46,7 +46,8 @@ async function getMgmtToken(): Promise<string | undefined> {
   });
 
   if (!res.ok) {
-    console.error("[FederatedTokens] M2M token request failed:", res.status);
+    const body = await res.json().catch(() => ({}));
+    console.error(`[FederatedTokens] M2M token request failed (${res.status}):`, JSON.stringify(body).slice(0, 200));
     return undefined;
   }
 
@@ -83,30 +84,34 @@ export async function getFederatedAccessToken(
 
   try {
     const mgmtToken = await getMgmtToken();
-    if (!mgmtToken) return undefined;
+    if (!mgmtToken) {
+      console.error(`[FederatedTokens] No mgmt token — check AUTH0_TOKEN_VAULT_CLIENT_ID/SECRET and Management API authorization`);
+      return undefined;
+    }
 
-    const res = await fetch(
-      `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`,
-      { headers: { Authorization: `Bearer ${mgmtToken}` } },
-    );
+    const url = `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`;
+    console.log(`[FederatedTokens] Fetching identities for userId=${userId} connection=${connection}`);
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${mgmtToken}` } });
 
     if (!res.ok) {
-      console.warn(`[FederatedTokens] GET /api/v2/users failed (${res.status}) for ${userId}`);
+      const body = await res.json().catch(() => ({}));
+      console.warn(`[FederatedTokens] GET /api/v2/users failed (${res.status}):`, JSON.stringify(body).slice(0, 200));
       return undefined;
     }
 
     const user = await res.json();
     const identities = user.identities as Auth0Identity[] | undefined;
+    console.log(`[FederatedTokens] Found ${identities?.length ?? 0} identities:`, identities?.map(i => `${i.connection}(hasToken:${!!i.access_token})`).join(", "));
 
     // Primary identity: look for exact connection match
     const identity = identities?.find((id) => id.connection === connection);
     if (identity?.access_token) {
+      console.log(`[FederatedTokens] Found access_token for ${connection}`);
       return identity.access_token;
     }
 
-    // Fallback: search all linked identities (handles account-linked users)
-    const linked = identities?.find((id) => id.connection === connection && id.access_token);
-    return linked?.access_token;
+    console.warn(`[FederatedTokens] No access_token found for connection=${connection}. identity found: ${!!identity}`);
+    return undefined;
   } catch (e) {
     console.warn("[FederatedTokens] Error fetching identity token:", e);
     return undefined;
