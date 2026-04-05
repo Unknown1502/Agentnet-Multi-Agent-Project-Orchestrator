@@ -6,6 +6,9 @@ import type { RunnableConfig } from "@langchain/core/runnables";
 import { runSubAgent, allTools, type SubAgentId, type SubAgentResult, type SubAgentEventCallback } from "./sub-agents";
 import type { AgentEvent } from "./state";
 
+// Strip CRLF injected by Windows Vercel CLI piping — affects ALL env vars.
+const cleanEnv = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
+
 // ---------------------------------------------------------------------------
 // Orchestrator — the top-level planner that decides WHICH agents to delegate to
 // and in what order, then synthesizes their results.
@@ -95,8 +98,8 @@ export async function runOrchestratedAgents({
   });
 
   const plannerModel = new ChatGroq({
-    model: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
-    apiKey: process.env.GROQ_API_KEY,
+    model: cleanEnv(process.env.GROQ_MODEL) || "llama-3.3-70b-versatile",
+    apiKey: cleanEnv(process.env.GROQ_API_KEY),
     temperature: 0,
   });
 
@@ -204,14 +207,25 @@ export async function runOrchestratedAgents({
   // If ALL sub-agents were interrupted (token vault not authorized), skip LLM
   // synthesis — produce a direct actionable error instead of a confusing summary.
   const interruptedResults = results.filter((r) => r.interrupted);
+  const errorResults = results.filter((r) => r.error && !r.interrupted);
   const successResults = results.filter((r) => !r.interrupted && !r.error);
+
   if (interruptedResults.length === results.length) {
     const connections = [...new Set(interruptedResults.map((r) =>
       (r.interrupted?.connection as string) ?? r.agentId
     ))];
     return {
       results,
-      summary: `Authorization required. The agent needs access to: ${connections.join(", ")}. Go to Connections and connect the required accounts, then try again.`,
+      summary: `Authorization required. The agent needs access to: ${connections.join(", ")}. Go to the Connections page and connect the required accounts, then try again.`,
+    };
+  }
+
+  // If ALL agents errored (no successes, no interrupts) — likely a config/network error.
+  if (errorResults.length === results.length) {
+    const firstError = errorResults[0]?.error ?? "Unknown error";
+    return {
+      results,
+      summary: `All agents failed. Error: ${firstError}. Please check your configuration and try again.`,
     };
   }
 
@@ -234,8 +248,8 @@ export async function runOrchestratedAgents({
     .join("\n\n");
 
   const synthesizerModel = new ChatGroq({
-    model: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
-    apiKey: process.env.GROQ_API_KEY,
+    model: cleanEnv(process.env.GROQ_MODEL) || "llama-3.3-70b-versatile",
+    apiKey: cleanEnv(process.env.GROQ_API_KEY),
     temperature: 0.1,
   });
 

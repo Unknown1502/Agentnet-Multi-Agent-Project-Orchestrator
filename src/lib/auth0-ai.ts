@@ -24,7 +24,10 @@ export const withGitHubAccess = auth0AI.withTokenVault({
   scopes: ["repo", "read:org", "read:user"],
   refreshToken: async (_args: unknown, config: Record<string, unknown>) => {
     const configurable = config?.configurable as Record<string, unknown> | undefined;
-    return configurable?.refresh_token as string | undefined;
+    const token = configurable?.refresh_token as string | undefined;
+    // Return undefined (not empty string) when absent \u2014 the library needs undefined to
+    // throw a proper GraphInterrupt rather than attempting an exchange with an empty token.
+    return token || undefined;
   },
 });
 
@@ -33,7 +36,8 @@ export const withSlackAccess = auth0AI.withTokenVault({
   scopes: ["chat:write", "channels:read", "channels:manage", "users:read"],
   refreshToken: async (_args: unknown, config: Record<string, unknown>) => {
     const configurable = config?.configurable as Record<string, unknown> | undefined;
-    return configurable?.refresh_token as string | undefined;
+    const token = configurable?.refresh_token as string | undefined;
+    return token || undefined;
   },
 });
 
@@ -42,7 +46,8 @@ export const withNotionAccess = auth0AI.withTokenVault({
   scopes: [],
   refreshToken: async (_args: unknown, config: Record<string, unknown>) => {
     const configurable = config?.configurable as Record<string, unknown> | undefined;
-    return configurable?.refresh_token as string | undefined;
+    const token = configurable?.refresh_token as string | undefined;
+    return token || undefined;
   },
 });
 

@@ -14,7 +14,6 @@ export const auth0 = new Auth0Client({
   authorizationParameters: {
     scope: clean(process.env.AUTH0_SCOPE) || "openid profile email offline_access",
   },
-  enableConnectAccountEndpoint: true,
   onCallback: async (error, ctx) => {
     const base = clean(process.env.AUTH0_BASE_URL) || "http://localhost:3000";
     if (error) {

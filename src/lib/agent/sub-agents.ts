@@ -14,6 +14,9 @@ import { getTrustZoneForTool } from "../trust-policy";
 import { getUserTrustPolicies } from "../db";
 import type { TrustEvent, CompletedAction } from "./state";
 
+// Strip CRLF injected by Windows Vercel CLI piping—affects ALL env vars.
+const cleanEnv = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
+
 export type SubAgentId = "github" | "slack" | "notion";
 
 export interface SubAgentResult {
@@ -117,7 +120,7 @@ export const allTools = [
   ...notionTools,
 ];
 
-const MAX_STEPS = 6;
+const MAX_STEPS = 4;
 
 // ---------------------------------------------------------------------------
 // Sub-agent runner
@@ -149,8 +152,8 @@ export async function runSubAgent({
   );
 
   const model = new ChatGroq({
-    model: process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile",
-    apiKey: process.env.GROQ_API_KEY,
+    model: cleanEnv(process.env.GROQ_MODEL) || "llama-3.3-70b-versatile",
+    apiKey: cleanEnv(process.env.GROQ_API_KEY),
     temperature: 0.1,
   });
 
