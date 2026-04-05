@@ -3,6 +3,12 @@ import { z } from "zod";
 import { getAccessTokenFromTokenVault } from "@auth0/ai-langchain";
 import { withGitHubAccess, withStepUpAuth } from "../auth0-ai";
 
+async function githubErr(response: Response, owner?: string, repo?: string): Promise<string> {
+  const body = await response.json().catch(() => ({})) as Record<string, unknown>;
+  const message = (body?.message as string) || response.statusText || String(response.status);
+  return JSON.stringify({ error: `GitHub API error: ${response.status} — ${message}`, owner, repo });
+}
+
 export const listGitHubIssues = withGitHubAccess(
   tool(
     async ({ owner, repo }: { owner: string; repo: string }) => {
@@ -18,7 +24,7 @@ export const listGitHubIssues = withGitHubAccess(
       );
 
       if (!response.ok) {
-        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+        return githubErr(response, owner, repo);
       }
 
       const issues = await response.json();
@@ -62,7 +68,7 @@ export const createGitHubIssue = withGitHubAccess(
       );
 
       if (!response.ok) {
-        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+        return githubErr(response, owner, repo);
       }
 
       const issue = await response.json();
@@ -105,7 +111,7 @@ export const commentOnPR = withGitHubAccess(
       );
 
       if (!response.ok) {
-        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+        return githubErr(response, owner, repo);
       }
 
       const comment = await response.json();
@@ -150,8 +156,7 @@ export const mergePullRequest = withStepUpAuth(
         );
 
         if (!response.ok) {
-          const err = await response.json();
-          return JSON.stringify({ error: `Merge failed: ${err.message}` });
+          return githubErr(response, owner, repo);
         }
 
         const result = await response.json();
@@ -203,7 +208,7 @@ export const listPullRequests = withGitHubAccess(
       );
 
       if (!response.ok) {
-        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+        return githubErr(response, owner, repo);
       }
 
       const prs = await response.json();
@@ -252,7 +257,7 @@ export const getIssueDetails = withGitHubAccess(
       );
 
       if (!response.ok) {
-        return JSON.stringify({ error: `GitHub API error: ${response.status}` });
+        return githubErr(response, owner, repo);
       }
 
       const issue = await response.json();
@@ -297,6 +302,10 @@ export const listUserRepos = withGitHubAccess(
       if (userRes.ok) {
         const userData = await userRes.json() as Record<string, unknown>;
         login = userData.login as string | undefined;
+      } else {
+        const body = await userRes.json().catch(() => ({})) as Record<string, unknown>;
+        const message = (body?.message as string) || userRes.statusText;
+        return JSON.stringify({ error: `GitHub token invalid or expired (${userRes.status} — ${message}). Ask the user to re-connect GitHub from the Connections page.` });
       }
 
       // Step 2: Try the full authenticated-user repos endpoint first.
