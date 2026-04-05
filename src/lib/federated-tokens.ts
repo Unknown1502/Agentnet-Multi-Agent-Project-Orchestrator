@@ -20,7 +20,7 @@ const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
 // Resets when the serverless function is recycled.
 let _mgmtCache: { token: string; expiresAt: number } | null = null;
 
-async function getMgmtToken(): Promise<string | undefined> {
+export async function getMgmtToken(): Promise<string | undefined> {
   if (_mgmtCache && _mgmtCache.expiresAt > Date.now() + 10_000) {
     return _mgmtCache.token;
   }

@@ -1,42 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { getRedis, isRedisConfigured } from "@/lib/db";
+import { getMgmtToken } from "@/lib/federated-tokens";
 
 export const dynamic = "force-dynamic";
 
-// Probe Token Vault using the MAIN app client (same client that issued the refresh token).
-// Auth0 requires subject_token's issuer client == the client_id in the request.
-async function probeTokenVault(connection: string, refreshToken: string): Promise<boolean> {
-  const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
-  const domain = c(process.env.AUTH0_DOMAIN);
-  const clientId = c(process.env.AUTH0_CLIENT_ID);
-  const clientSecret = c(process.env.AUTH0_CLIENT_SECRET);
-  if (!domain || !clientId || !clientSecret) return false;
-  try {
-    const res = await fetch(`https://${domain}/oauth/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        grant_type: "urn:auth0:params:oauth:grant-type:token-exchange:federated-connection-access-token",
-        client_id: clientId,
-        client_secret: clientSecret,
-        subject_token_type: "urn:ietf:params:oauth:token-type:refresh_token",
-        subject_token: refreshToken,
-        connection,
-      }),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      console.error(`[TokenVault probe] ${connection} FAILED (${res.status}):`, JSON.stringify(body));
-    } else {
-      console.log(`[TokenVault probe] ${connection} SUCCESS`);
-    }
-    return res.ok;
-  } catch (e) {
-    console.warn(`[TokenVault probe] ${connection} error:`, e);
-    return false;
-  }
-}
+const c = (v: string | undefined) => (v || "").replace(/[\r\n]+/g, "").trim();
 
 const CONNECTIONS = [
   {
@@ -97,70 +66,64 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // In @auth0/nextjs-auth0 v4, the refresh token is nested at session.tokenSet.refreshToken.
-  // The top-level session.refreshToken does NOT exist in this SDK version.
-  type SessionV4 = { tokenSet?: { refreshToken?: string }; connectionTokenSets?: Array<{ connection: string }> } & Record<string, unknown>;
-  const sessionData = session as SessionV4;
-  const refreshToken = sessionData.tokenSet?.refreshToken;
-  const connectionTokenSets = sessionData.connectionTokenSets ?? [];
-  console.log(`[Connections GET] session keys:`, Object.keys(sessionData));
-  console.log(`[Connections GET] refreshToken present:`, !!refreshToken);
-  console.log(`[Connections GET] connectionTokenSets:`, connectionTokenSets.map((c) => c.connection));
+  // ── Ground truth: fetch actual linked identities from Management API.
+  // This is reliable regardless of which sub the session uses — after account linking,
+  // ALL providers appear under the primary sub's identities array.
+  let linkedConnections: string[] = [];
+  try {
+    const mgmtToken = await getMgmtToken();
+    if (mgmtToken) {
+      const domain = c(process.env.AUTH0_DOMAIN);
+      const res = await fetch(
+        `https://${domain}/api/v2/users/${encodeURIComponent(userId)}`,
+        { headers: { Authorization: `Bearer ${mgmtToken}` } }
+      );
+      if (res.ok) {
+        const user = await res.json();
+        linkedConnections = (
+          (user.identities as Array<{ connection: string }>) ?? []
+        ).map((i) => i.connection);
+        console.log(`[Connections GET] mgmt identities for ${userId}:`, linkedConnections);
+      } else {
+        console.warn(`[Connections GET] mgmt user fetch failed (${res.status})`);
+      }
+    }
+  } catch (e) {
+    console.warn("[Connections GET] Management API check failed, using Redis fallback:", e);
+  }
 
-  // Probe Token Vault for each connection.
-  // Fast path: check session.connectionTokenSets first (populated by SDK after connect).
-  // Slow path: do a live Token Vault exchange with the M2M client + refresh token.
   const connectionStatuses = await Promise.all(
     CONNECTIONS.map(async (conn) => {
-      // Fast path — SDK already cached this connection token in the session
-      const inSession = connectionTokenSets.some((c) => c.connection === conn.provider);
-      if (inSession) return { ...conn, connected: true };
+      // ── Primary check: Management API (ground truth after account linking)
+      if (linkedConnections.includes(conn.provider)) return { ...conn, connected: true };
 
-      // Check manual OAuth confirmation marker (written by PUT after redirect-back).
-      // We check TWO keys:
-      //   1. sub-keyed  — written for the current session (fastest within same sub)
-      //   2. email-keyed — stable across different social logins (different subs, same email)
+      // ── Fallback: Redis markers (covers cases where Mgmt API is temporarily unavailable,
+      //    or the user just completed an OAuth flow but account linking is still pending)
       if (isRedisConfigured()) {
         try {
           const redis = await getRedis();
-          const bySubKey = `conn-manual:${userId}:${conn.provider}`;
-          const byEmailKey = userEmail ? `conn-manual:email:${userEmail}:${conn.provider}` : null;
-          const markedBySub = await redis.get(bySubKey);
-          const markedByEmail = byEmailKey ? await redis.get(byEmailKey) : null;
-          if (markedBySub || markedByEmail) return { ...conn, connected: true };
+          const bySub = await redis.get(`conn-manual:${userId}:${conn.provider}`);
+          const byEmail = userEmail
+            ? await redis.get(`conn-manual:email:${userEmail}:${conn.provider}`)
+            : null;
+          if (bySub || byEmail) return { ...conn, connected: true };
         } catch {
           // non-fatal
         }
       }
 
-      // Slow path — probe Token Vault with the current refresh token
-      const connected = refreshToken
-        ? await probeTokenVault(conn.provider, refreshToken)
-        : false;
-
-      // When the probe succeeds, persist the result as an email-keyed marker so it
-      // survives future logins that change the user's sub.
-      if (connected && isRedisConfigured() && userEmail) {
-        try {
-          const redis = await getRedis();
-          const ex = 7 * 24 * 3600;
-          await Promise.all([
-            redis.set(`conn-manual:${userId}:${conn.provider}`, "1", { ex }),
-            redis.set(`conn-manual:email:${userEmail}:${conn.provider}`, "1", { ex }),
-          ]);
-        } catch {
-          // non-fatal
-        }
-      }
-
-      return { ...conn, connected };
+      return { ...conn, connected: false };
     })
   );
 
   // Write-through cache
   if (isRedisConfigured()) {
-    const redis = await getRedis();
-    await redis.set(cacheKey, connectionStatuses, { ex: CACHE_TTL });
+    try {
+      const redis = await getRedis();
+      await redis.set(cacheKey, connectionStatuses, { ex: CACHE_TTL });
+    } catch {
+      // non-fatal
+    }
   }
 
   return NextResponse.json({ connections: connectionStatuses });
