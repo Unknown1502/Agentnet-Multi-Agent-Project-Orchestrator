@@ -117,7 +117,7 @@ export function NavSidebar() {
             <p className="text-[11px] font-semibold text-cyan-300">Auth0 AI Active</p>
           </div>
           <p className="mt-0.5 text-[10px] text-white/25 leading-relaxed">
-            Token Vault &amp; CIBA enabled
+            OAuth &amp; CIBA enabled
           </p>
         </div>
       </div>

@@ -128,7 +128,7 @@ export function ConnectionCard({ connection, onConnect, isConnecting }: Connecti
           {connection.connected ? (
             <div className={`flex items-center gap-2 text-xs font-medium ${cfg.connectedText}`}>
               <Key className="h-3.5 w-3.5" />
-              Token secured in Auth0 Vault
+              OAuth token connected
             </div>
           ) : (
             <button

@@ -116,7 +116,7 @@ export function StepUpNotification({ event, onDismiss }: StepUpNotificationProps
                       {isTokenVaultError ? `${providerLabel} Not Connected` : "Security Approval Required"}
                     </h2>
                     <p className="text-xs text-white/35 mt-0.5">
-                      {isTokenVaultError ? "Token Vault access unavailable" : "High-risk action detected · Guardian push sent"}
+                      {isTokenVaultError ? "OAuth credentials needed" : "High-risk action detected · Guardian push sent"}
                     </p>
                   </div>
                   <button
@@ -135,7 +135,7 @@ export function StepUpNotification({ event, onDismiss }: StepUpNotificationProps
                 }`}>
                   <p className="text-sm text-white/70 leading-relaxed">
                     {isTokenVaultError
-                      ? `The ${providerLabel} agent needs your OAuth credentials to operate. Connect your account so Auth0 Token Vault can securely exchange tokens on your behalf.`
+                      ? `The ${providerLabel} agent can't access your account right now. Go to Connections and reconnect ${providerLabel} to restore access.`
                       : message || "A high-risk action requires your explicit approval. Check your Guardian app or email."}
                   </p>
                 </div>

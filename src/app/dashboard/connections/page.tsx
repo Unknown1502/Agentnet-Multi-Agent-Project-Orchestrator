@@ -210,15 +210,15 @@ function ConnectionsContent() {
         </div>
       )}
 
-      {/* How Token Vault works */}
+      {/* How it works */}
       <div className="overflow-hidden rounded-2xl border border-white/6 bg-white/2">
         <div className="border-b border-white/5 px-6 py-4">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-cyan-400" />
-            <h2 className="text-sm font-semibold text-white">How Token Vault Works</h2>
+            <h2 className="text-sm font-semibold text-white">How Connected Accounts Work</h2>
           </div>
           <p className="mt-0.5 text-xs text-white/30">
-            Auth0 handles token lifecycle — your AI never sees raw credentials
+            Auth0 handles the OAuth flow — your AI retrieves tokens securely, never stored in the agent
           </p>
         </div>
 
@@ -229,21 +229,21 @@ function ConnectionsContent() {
               title: "You connect",
               color: "text-cyan-400",
               bg: "bg-cyan-500/4",
-              desc: "OAuth flow runs through Auth0. Token is encrypted and stored in Token Vault.",
+              desc: "OAuth flow runs through Auth0. The provider token is stored securely in your Auth0 identity.",
             },
             {
               step: "02",
               title: "Agent requests",
               color: "text-violet-400",
               bg: "bg-violet-500/4",
-              desc: "Agent calls Token Vault with your session. Auth0 validates scope and trust zone.",
+              desc: "When a tool runs, the agent fetches your provider token from Auth0 using your session.",
             },
             {
               step: "03",
-              title: "Token exchanged",
+              title: "Token retrieved",
               color: "text-emerald-400",
               bg: "bg-emerald-500/4",
-              desc: "Federated token exchange returns a short-lived access token. Never stored in agent.",
+              desc: "The access token is used for the API call and discarded — never stored inside the agent.",
             },
           ].map((item) => (
             <div key={item.step} className={`px-6 py-5 ${item.bg}`}>
