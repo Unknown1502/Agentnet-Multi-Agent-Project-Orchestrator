@@ -28,22 +28,24 @@ export const auth0 = new Auth0Client({
   },
   onCallback: async (error, ctx) => {
     if (error) {
-      // Log the full error server-side so it's visible in the terminal
       const errRecord = error as unknown as Record<string, unknown>;
       const causeRecord = (errRecord.cause ?? {}) as Record<string, unknown>;
       const code = (errRecord.code ?? causeRecord.code ?? "") as string;
-      console.error("[Auth0 onCallback error]", {
+      // Surface ALL fields so we can diagnose from Vercel logs
+      const authError = (causeRecord.error ?? errRecord.error ?? "") as string;
+      const authDescription = (causeRecord.error_description ?? errRecord.error_description ?? causeRecord.message ?? "") as string;
+      console.error("[Auth0 onCallback error]", JSON.stringify({
         message: error.message,
         code,
         causeCode: causeRecord.code,
         causeMessage: causeRecord.message,
-        status: causeRecord.status,
+        authError,
+        authDescription,
+        cause: causeRecord,
         baseUrl: BASE_URL,
-      });
+      }));
       const url = new URL("/dashboard/connections", BASE_URL);
 
-      // For invalid_state the session/cookie simply expired or was replayed.
-      // Give the user a human-readable message with a code they can search for.
       if (code === "invalid_state" || causeRecord.code === "invalid_state") {
         url.searchParams.set(
           "error",
@@ -53,15 +55,13 @@ export const auth0 = new Auth0Client({
         code === "authorization_error" ||
         causeRecord.code === "authorization_error"
       ) {
-        // Most common cause: the OAuth app's redirect URI in the social provider's
-        // developer portal doesn't include the Auth0 callback URL.
-        // For Notion: go to https://www.notion.so/my-integrations → OAuth Domain & URIs
-        // and add: https://<your-auth0-tenant>.us.auth0.com/login/callback
+        // Show the actual provider error if available, otherwise show generic message
+        const detail = authDescription || authError;
         url.searchParams.set(
           "error",
-          "Authorization flow failed. For Notion: ensure your Notion OAuth app's redirect URI includes " +
-            `https://${clean(process.env.AUTH0_DOMAIN)}/login/callback. ` +
-            "For all providers: check that the social connection is enabled in Auth0 Dashboard → Authentication → Social. (authorization_error)"
+          detail
+            ? `Authorization failed: ${detail} (authorization_error)`
+            : "Authorization failed. Check that (1) the social connection is enabled in Auth0 Dashboard → Authentication → Social, (2) the Client ID/Secret in Auth0 match your provider app, and (3) \"Store user access token\" is ON. (authorization_error)"
         );
       } else {
         const displayMsg = code
