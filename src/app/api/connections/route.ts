@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { getRedis, isRedisConfigured } from "@/lib/db";
 
@@ -67,22 +67,33 @@ const CONNECTIONS = [
 
 const CACHE_TTL = 30; // seconds
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const session = await auth0.getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = session.user.sub as string;
-  const cacheKey = `conn-status:${userId}`;
-  console.log(`[Connections GET] userId=${userId}`);
+  // Bust param: if the client passes ?bust=1 skip the cache and recompute fresh.
+  // This is called after a connect flow completes to guarantee up-to-date status.
+  const bust = request.nextUrl.searchParams.has("bust");
 
-  // Serve from Redis cache when available
-  if (isRedisConfigured()) {
-    const redis = await getRedis();
-    const cached = await redis.get<typeof CONNECTIONS>(cacheKey);
-    if (cached) {
-      return NextResponse.json({ connections: cached });
+  const userId = session.user.sub as string;
+  // Email is a stable cross-session identifier — the sub changes each time the user
+  // logs in via a different social provider, but the email stays the same.
+  const userEmail = (session.user.email as string | undefined)?.toLowerCase();
+  const cacheKey = `conn-status:${userId}`;
+  console.log(`[Connections GET] userId=${userId} email=${userEmail} bust=${bust}`);
+
+  // Serve from Redis cache when available (skip when bust requested)
+  if (!bust && isRedisConfigured()) {
+    try {
+      const redis = await getRedis();
+      const cached = await redis.get<typeof CONNECTIONS>(cacheKey);
+      if (cached) {
+        return NextResponse.json({ connections: cached });
+      }
+    } catch {
+      // non-fatal — fall through to recompute
     }
   }
 
@@ -105,21 +116,43 @@ export async function GET() {
       const inSession = connectionTokenSets.some((c) => c.connection === conn.provider);
       if (inSession) return { ...conn, connected: true };
 
-      // Check manual OAuth confirmation marker (written by PUT after redirect-back)
+      // Check manual OAuth confirmation marker (written by PUT after redirect-back).
+      // We check TWO keys:
+      //   1. sub-keyed  — written for the current session (fastest within same sub)
+      //   2. email-keyed — stable across different social logins (different subs, same email)
       if (isRedisConfigured()) {
         try {
           const redis = await getRedis();
-          const marked = await redis.get(`conn-manual:${userId}:${conn.provider}`);
-          if (marked) return { ...conn, connected: true };
+          const bySubKey = `conn-manual:${userId}:${conn.provider}`;
+          const byEmailKey = userEmail ? `conn-manual:email:${userEmail}:${conn.provider}` : null;
+          const markedBySub = await redis.get(bySubKey);
+          const markedByEmail = byEmailKey ? await redis.get(byEmailKey) : null;
+          if (markedBySub || markedByEmail) return { ...conn, connected: true };
         } catch {
           // non-fatal
         }
       }
 
-      // Slow path — probe Token Vault with M2M client
+      // Slow path — probe Token Vault with the current refresh token
       const connected = refreshToken
         ? await probeTokenVault(conn.provider, refreshToken)
         : false;
+
+      // When the probe succeeds, persist the result as an email-keyed marker so it
+      // survives future logins that change the user's sub.
+      if (connected && isRedisConfigured() && userEmail) {
+        try {
+          const redis = await getRedis();
+          const ex = 7 * 24 * 3600;
+          await Promise.all([
+            redis.set(`conn-manual:${userId}:${conn.provider}`, "1", { ex }),
+            redis.set(`conn-manual:email:${userEmail}:${conn.provider}`, "1", { ex }),
+          ]);
+        } catch {
+          // non-fatal
+        }
+      }
+
       return { ...conn, connected };
     })
   );

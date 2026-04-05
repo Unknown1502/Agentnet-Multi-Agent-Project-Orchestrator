@@ -71,11 +71,22 @@ export async function PUT(
   }
 
   const userId = session.user.sub as string;
+  // Also write an email-keyed marker. Each social login can change the user's sub,
+  // but the email is stable — this lets future sessions find the marker even with a
+  // different sub.
+  const userEmail = (session.user.email as string | undefined)?.toLowerCase();
+
   if (isRedisConfigured()) {
     try {
       const redis = await getRedis();
-      // Mark as connected for 7 days
-      await redis.set(`conn-manual:${userId}:${connection}`, "1", { ex: 7 * 24 * 3600 });
+      const ex = 7 * 24 * 3600;
+      // Mark as connected for 7 days — both by sub and by email
+      await Promise.all([
+        redis.set(`conn-manual:${userId}:${connection}`, "1", { ex }),
+        ...(userEmail
+          ? [redis.set(`conn-manual:email:${userEmail}:${connection}`, "1", { ex })]
+          : []),
+      ]);
       // Bust the status cache so next GET reflects the mark
       await redis.del(`conn-status:${userId}`);
     } catch {

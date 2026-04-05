@@ -19,15 +19,21 @@ export const auth0 = new Auth0Client({
     const base = clean(process.env.AUTH0_BASE_URL) || "http://localhost:3000";
     if (error) {
       // Log the full error server-side so it's visible in the terminal
+      const errRecord = error as unknown as Record<string, unknown>;
+      const causeRecord = (errRecord.cause ?? {}) as Record<string, unknown>;
       console.error("[Auth0 onCallback error]", {
         message: error.message,
-        code: (error as unknown as Record<string, unknown>).code,
-        causeCode: ((error as unknown as Record<string, unknown>).cause as Record<string, unknown>)?.code,
-        causeMessage: ((error as unknown as Record<string, unknown>).cause as Record<string, unknown>)?.message,
-        status: ((error as unknown as Record<string, unknown>).cause as Record<string, unknown>)?.status,
+        code: errRecord.code,
+        causeCode: causeRecord.code,
+        causeMessage: causeRecord.message,
+        status: causeRecord.status,
       });
       const url = new URL("/dashboard/connections", base);
-      url.searchParams.set("error", error.message || "Authentication failed");
+      // Include both the human-readable message and the machine code so the UI can
+      // give the user more actionable feedback.
+      const code = (errRecord.code ?? causeRecord.code ?? "") as string;
+      const displayMsg = code ? `${error.message || "Authentication failed"} (${code})` : (error.message || "Authentication failed");
+      url.searchParams.set("error", displayMsg);
       return NextResponse.redirect(url);
     }
     const returnTo = ctx.returnTo || "/dashboard";
