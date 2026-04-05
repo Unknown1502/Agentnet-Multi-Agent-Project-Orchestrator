@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -21,6 +21,7 @@ function ConnectionsContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [connectingProvider, setConnectingProvider] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const searchParams = useSearchParams();
 
   const fetchConnections = useCallback(async (bust = false) => {
@@ -29,8 +30,18 @@ function ConnectionsContent() {
       const res = await fetch(url, { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        setConnections(data.connections);
+        setConnections(data.connections ?? []);
+        setFetchError(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        console.error("[Connections] API error:", res.status, err);
+        setFetchError(err.error || `Server error (${res.status})`);
+        setConnections([]);
       }
+    } catch (e) {
+      console.error("[Connections] Fetch failed:", e);
+      setFetchError("Could not reach the server. Check your connection.");
+      setConnections([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -93,6 +104,13 @@ function ConnectionsContent() {
       {connectError && (
         <div className="rounded-xl border border-red-500/25 bg-red-500/8 px-4 py-3 text-sm text-red-400">
           {connectError}
+        </div>
+      )}
+
+      {fetchError && (
+        <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-400">
+          Failed to load connections: {fetchError}
+          <button onClick={handleRefresh} className="ml-3 underline hover:no-underline">Retry</button>
         </div>
       )}
 
